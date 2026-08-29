@@ -1,0 +1,30 @@
+# Dependencies
+/frontend/node_modules/
+/backend/vendor/
+/backend/node_modules/
+
+# Next.js build outputs
+/frontend/.next/
+/frontend/out/
+/frontend/build/
+
+# PHP/Laravel build outputs and cache
+/backend/public/build/
+/backend/public/hot/
+/backend/public/storage/
+/backend/storage/*.key
+/backend/storage/pail/
+/backend/.phpunit.result.cache
+/backend/.phpunit.cache/
+
+# Environments (sensitive data)
+.env
+.env.*
+!.env.example
+/frontend/.env*
+/backend/.env
+
+# OS files
+.DS_Store
+Thumbs.db
+*.log
