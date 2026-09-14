@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -26,6 +27,7 @@ class AuthController extends Controller
             ]);
         }
 
+        /** @var User $user */
         $user = Auth::user();
 
         if ($user->status !== 'active') {
@@ -46,17 +48,35 @@ class AuthController extends Controller
 
     public function logout(Request $request): JsonResponse
     {
-        $request->user()->currentAccessToken()?->delete();
+        if ($bearer = $request->bearerToken()) {
+            \Laravel\Sanctum\PersonalAccessToken::findToken($bearer)?->delete();
+        }
+
+        $token = $request->user()?->currentAccessToken();
+        if ($token && method_exists($token, 'delete')) {
+            $token->delete();
+        }
+
+        if (Auth::guard('web')->check()) {
+            Auth::guard('web')->logout();
+        }
 
         return response()->json(['message' => 'Logged out.']);
     }
 
     public function me(Request $request): JsonResponse
     {
-        return response()->json(['user' => $this->userPayload($request->user())]);
+        /** @var User|null $user */
+        $user = $request->user();
+
+        if (! ($user instanceof User)) {
+            return response()->json(['message' => 'Staff access required.'], 403);
+        }
+
+        return response()->json(['user' => $this->userPayload($user)]);
     }
 
-    private function userPayload($user): array
+    private function userPayload(User $user): array
     {
         return [
             'id' => $user->id,

@@ -79,4 +79,20 @@ class Patient extends Model
     {
         return $this->hasMany(MedicationAdministration::class);
     }
+
+    public function guardianMessages(): HasMany
+    {
+        return $this->hasMany(GuardianMessage::class);
+    }
+
+    public function invoices(): HasMany
+    {
+        return $this->hasMany(Invoice::class);
+    }
+
+    public function payments(): HasMany
+    {
+        return $this->hasMany(Payment::class);
+    }
 }
+

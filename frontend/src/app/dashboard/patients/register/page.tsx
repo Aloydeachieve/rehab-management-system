@@ -72,45 +72,45 @@ export default function RegisterPatientPage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <div className="bg-white border border-zinc-200 rounded-2xl p-6 sm:p-8 shadow-sm">
+      <div className="bg-white border border-brand-cream-dark/60 rounded-2xl p-6 sm:p-8 shadow-sm">
         <div>
-          <h2 className="text-xl font-bold text-zinc-900">Register New Patient</h2>
-          <p className="mt-1 text-xs text-zinc-400">
+          <h2 className="font-serif text-xl font-bold text-brand-charcoal">Register New Patient</h2>
+          <p className="mt-1 text-xs text-brand-muted font-medium">
             Please register the patient details along with their primary guardian contact details.
           </p>
         </div>
 
         {mutation.isError && (
-          <div className="mt-6 rounded-lg bg-red-50 p-4 text-xs text-red-800 border border-red-200">
+          <div className="mt-6 rounded-xl bg-red-50 p-4 text-xs text-red-800 border border-red-200/50">
             {((mutation.error as any)?.response?.data?.message) || 'Failed to register patient. Please check input.'}
           </div>
         )}
 
-        <form onSubmit={handleSubmit(onSubmit)} className="mt-8 space-y-8 text-zinc-700">
+        <form onSubmit={handleSubmit(onSubmit)} className="mt-8 space-y-8 text-brand-charcoal-light">
           {/* Section 1: Patient Demographic Details */}
           <div className="space-y-4">
-            <h3 className="text-sm font-bold text-teal-700 border-b border-zinc-100 pb-2 uppercase tracking-wider">
+            <h3 className="text-xs font-bold text-brand-primary border-b border-brand-cream-dark/45 pb-2.5 uppercase tracking-wider">
               1. Patient Demographics
             </h3>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-zinc-600">Patient Full Name *</label>
+                <label className="block text-xs font-semibold text-brand-charcoal-light uppercase tracking-wider mb-1.5">Patient Full Name *</label>
                 <input
                   type="text"
                   {...register('name')}
-                  className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                  className="block w-full rounded-xl border border-brand-cream-dark/80 bg-brand-cream-light/35 px-4.5 py-2.5 text-sm text-brand-charcoal placeholder-brand-muted/70 shadow-sm focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary focus:bg-white transition-all"
                   placeholder="e.g. Somto Ndu"
                 />
-                {errors.name && <p className="mt-1 text-xs text-red-600">{errors.name.message}</p>}
+                {errors.name && <p className="mt-1.5 text-xs text-red-600 font-medium">{errors.name.message}</p>}
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-zinc-600">Phone Number (Optional)</label>
+                <label className="block text-xs font-semibold text-brand-charcoal-light uppercase tracking-wider mb-1.5">Phone Number (Optional)</label>
                 <input
                   type="text"
                   {...register('phone')}
-                  className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                  className="block w-full rounded-xl border border-brand-cream-dark/80 bg-brand-cream-light/35 px-4.5 py-2.5 text-sm text-brand-charcoal placeholder-brand-muted/70 shadow-sm focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary focus:bg-white transition-all"
                   placeholder="e.g. +234 803 111 2222"
                 />
               </div>
@@ -118,20 +118,20 @@ export default function RegisterPatientPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-zinc-600">Date of Birth *</label>
+                <label className="block text-xs font-semibold text-brand-charcoal-light uppercase tracking-wider mb-1.5">Date of Birth *</label>
                 <input
                   type="date"
                   {...register('date_of_birth')}
-                  className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500 text-zinc-500"
+                  className="block w-full rounded-xl border border-brand-cream-dark/80 bg-brand-cream-light/35 px-4.5 py-2.5 text-sm text-brand-charcoal-light placeholder-brand-muted/70 shadow-sm focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary focus:bg-white transition-all"
                 />
-                {errors.date_of_birth && <p className="mt-1 text-xs text-red-600">{errors.date_of_birth.message}</p>}
+                {errors.date_of_birth && <p className="mt-1.5 text-xs text-red-600 font-medium">{errors.date_of_birth.message}</p>}
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-zinc-600">Gender *</label>
+                <label className="block text-xs font-semibold text-brand-charcoal-light uppercase tracking-wider mb-1.5">Gender *</label>
                 <select
                   {...register('gender')}
-                  className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-600 bg-white focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                  className="block w-full rounded-xl border border-brand-cream-dark/80 bg-brand-cream-light/35 px-4.5 py-2.5 text-sm text-brand-charcoal-light bg-white focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary focus:bg-white transition-all cursor-pointer"
                 >
                   <option value="male">Male</option>
                   <option value="female">Female</option>
@@ -141,95 +141,95 @@ export default function RegisterPatientPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-zinc-600">Physical Address *</label>
+              <label className="block text-xs font-semibold text-brand-charcoal-light uppercase tracking-wider mb-1.5">Physical Address *</label>
               <textarea
                 rows={2}
                 {...register('address')}
-                className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                className="block w-full rounded-xl border border-brand-cream-dark/80 bg-brand-cream-light/35 px-4.5 py-2.5 text-sm text-brand-charcoal placeholder-brand-muted/70 shadow-sm focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary focus:bg-white transition-all"
                 placeholder="e.g. No. 5 Awka Road, Nibo, Anambra State"
               />
-              {errors.address && <p className="mt-1 text-xs text-red-600">{errors.address.message}</p>}
+              {errors.address && <p className="mt-1.5 text-xs text-red-600 font-medium">{errors.address.message}</p>}
             </div>
           </div>
 
           {/* Section 2: Primary Guardian Details */}
-          <div className="space-y-4 pt-4 border-t border-zinc-100">
-            <h3 className="text-sm font-bold text-teal-700 border-b border-zinc-100 pb-2 uppercase tracking-wider">
+          <div className="space-y-4 pt-4 border-t border-brand-cream-dark/45">
+            <h3 className="text-xs font-bold text-brand-primary border-b border-brand-cream-dark/45 pb-2.5 uppercase tracking-wider">
               2. Primary Guardian Details
             </h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-zinc-600">Guardian Name *</label>
+                <label className="block text-xs font-semibold text-brand-charcoal-light uppercase tracking-wider mb-1.5">Guardian Name *</label>
                 <input
                   type="text"
                   {...register('guardian_name')}
-                  className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                  className="block w-full rounded-xl border border-brand-cream-dark/80 bg-brand-cream-light/35 px-4.5 py-2.5 text-sm text-brand-charcoal placeholder-brand-muted/70 shadow-sm focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary focus:bg-white transition-all"
                   placeholder="e.g. Chief Emeka Ndu"
                 />
-                {errors.guardian_name && <p className="mt-1 text-xs text-red-600">{errors.guardian_name.message}</p>}
+                {errors.guardian_name && <p className="mt-1.5 text-xs text-red-600 font-medium">{errors.guardian_name.message}</p>}
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-zinc-600">Relationship *</label>
+                <label className="block text-xs font-semibold text-brand-charcoal-light uppercase tracking-wider mb-1.5">Relationship *</label>
                 <input
                   type="text"
                   {...register('guardian_relationship')}
-                  className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                  className="block w-full rounded-xl border border-brand-cream-dark/80 bg-brand-cream-light/35 px-4.5 py-2.5 text-sm text-brand-charcoal placeholder-brand-muted/70 shadow-sm focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary focus:bg-white transition-all"
                   placeholder="e.g. Father, Uncle, Mother"
                 />
-                {errors.guardian_relationship && <p className="mt-1 text-xs text-red-600">{errors.guardian_relationship.message}</p>}
+                {errors.guardian_relationship && <p className="mt-1.5 text-xs text-red-600 font-medium">{errors.guardian_relationship.message}</p>}
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-zinc-600">Guardian Phone *</label>
+                <label className="block text-xs font-semibold text-brand-charcoal-light uppercase tracking-wider mb-1.5">Guardian Phone *</label>
                 <input
                   type="text"
                   {...register('guardian_phone')}
-                  className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                  className="block w-full rounded-xl border border-brand-cream-dark/80 bg-brand-cream-light/35 px-4.5 py-2.5 text-sm text-brand-charcoal placeholder-brand-muted/70 shadow-sm focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary focus:bg-white transition-all"
                   placeholder="e.g. +234 803 999 8888"
                 />
-                {errors.guardian_phone && <p className="mt-1 text-xs text-red-600">{errors.guardian_phone.message}</p>}
+                {errors.guardian_phone && <p className="mt-1.5 text-xs text-red-600 font-medium">{errors.guardian_phone.message}</p>}
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-zinc-600">Guardian Email</label>
+                <label className="block text-xs font-semibold text-brand-charcoal-light uppercase tracking-wider mb-1.5">Guardian Email</label>
                 <input
                   type="email"
                   {...register('guardian_email')}
-                  className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                  className="block w-full rounded-xl border border-brand-cream-dark/80 bg-brand-cream-light/35 px-4.5 py-2.5 text-sm text-brand-charcoal placeholder-brand-muted/70 shadow-sm focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary focus:bg-white transition-all"
                   placeholder="e.g. emeka@gmail.com"
                 />
-                {errors.guardian_email && <p className="mt-1 text-xs text-red-600">{errors.guardian_email.message}</p>}
+                {errors.guardian_email && <p className="mt-1.5 text-xs text-red-600 font-medium">{errors.guardian_email.message}</p>}
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-zinc-600">Guardian Physical Address</label>
+              <label className="block text-xs font-semibold text-brand-charcoal-light uppercase tracking-wider mb-1.5">Guardian Physical Address</label>
               <textarea
                 rows={2}
                 {...register('guardian_address')}
-                className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                className="block w-full rounded-xl border border-brand-cream-dark/80 bg-brand-cream-light/35 px-4.5 py-2.5 text-sm text-brand-charcoal placeholder-brand-muted/70 shadow-sm focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary focus:bg-white transition-all"
                 placeholder="Leave blank if same as patient address"
               />
             </div>
           </div>
 
           {/* Form Actions */}
-          <div className="flex justify-end gap-3 pt-6 border-t border-zinc-100">
+          <div className="flex justify-end gap-3 pt-6 border-t border-brand-cream-dark/45">
             <button
               type="button"
               onClick={() => router.push('/dashboard/patients')}
-              className="rounded-full bg-white border border-zinc-200 px-5 py-2 text-xs font-semibold text-zinc-700 hover:bg-zinc-50"
+              className="rounded-full bg-white border border-brand-cream-dark/60 px-6 py-2.5 text-xs font-bold text-brand-charcoal hover:bg-brand-cream/35 transition-colors cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={mutation.isPending}
-              className="rounded-full bg-teal-600 px-6 py-2 text-xs font-semibold text-white hover:bg-teal-700 disabled:bg-teal-400 shadow-sm"
+              className="rounded-full bg-brand-accent hover:bg-brand-accent-dark px-6 py-2.5 text-xs font-bold text-white disabled:bg-brand-accent/50 shadow-md shadow-brand-accent/20 transition-all cursor-pointer"
             >
               {mutation.isPending ? 'Registering...' : 'Register Patient'}
             </button>

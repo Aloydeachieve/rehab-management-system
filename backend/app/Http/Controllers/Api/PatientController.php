@@ -16,6 +16,7 @@ class PatientController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
+        /** @var \App\Models\User $user */
         $user = $request->user();
         $query = Patient::with(['guardians', 'admissions'])->latest();
 
@@ -110,6 +111,7 @@ class PatientController extends Controller
      */
     public function show(Patient $patient): JsonResponse
     {
+        /** @var \App\Models\User $user */
         $user = auth()->user();
 
         if ($user->isDoctor()) {
@@ -153,8 +155,21 @@ class PatientController extends Controller
      */
     public function guardians(Patient $patient): JsonResponse
     {
+        /** @var \App\Models\User $user */
+        $user = auth()->user();
+
+        if ($user->isDoctor()) {
+            $isAssigned = $patient->appointments()
+                ->where('assigned_staff_id', $user->id)
+                ->exists();
+
+            if (! $isAssigned) {
+                abort(403, 'You are not assigned/authorized to access this patient\'s guardians.');
+            }
+        }
+
         return response()->json([
-            'guardians' => $patient->guardians
+            'guardians' => $patient->guardians,
         ]);
     }
 }

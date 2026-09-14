@@ -30,6 +30,7 @@ class ClinicalController extends Controller
      */
     private function validatePatientAccess(Patient $patient): void
     {
+        /** @var \App\Models\User $user */
         $user = auth()->user();
 
         if ($user->isAdmin()) {

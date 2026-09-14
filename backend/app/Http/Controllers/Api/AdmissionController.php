@@ -60,14 +60,19 @@ class AdmissionController extends Controller
             // Ensure patient status is active
             $patient->update(['status' => 'active']);
 
-            // Calculate expected end date: exactly 30 days after start date
+            // Calculate expected end date using configured duration
+            $pricingService = app(\App\Services\TreatmentPricingService::class);
+            $durationDays = $pricingService->getSessionDurationDays();
+            $initialPrice = $pricingService->getPriceForSessionNumber(1);
+
             $startDate = \Carbon\Carbon::parse($data['admission_date']);
-            $expectedEndDate = $startDate->copy()->addDays(30);
+            $expectedEndDate = $startDate->copy()->addDays($durationDays);
 
             // Create initial residential session 1
             TreatmentSession::create([
                 'patient_id' => $patient->id,
                 'session_number' => 1,
+                'session_price' => $initialPrice,
                 'start_date' => $startDate->toDateString(),
                 'expected_end_date' => $expectedEndDate->toDateString(),
                 'status' => 'active',
@@ -88,6 +93,19 @@ class AdmissionController extends Controller
      */
     public function patientAdmissions(Patient $patient): JsonResponse
     {
+        /** @var \App\Models\User $user */
+        $user = auth()->user();
+
+        if ($user->isDoctor()) {
+            $isAssigned = $patient->appointments()
+                ->where('assigned_staff_id', $user->id)
+                ->exists();
+
+            if (! $isAssigned) {
+                abort(403, 'You are not assigned/authorized to access this patient\'s admissions.');
+            }
+        }
+
         $admissions = $patient->admissions()->with('admittedBy')->latest()->get();
         return response()->json(['admissions' => $admissions]);
     }

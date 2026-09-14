@@ -19,6 +19,7 @@ class AppointmentController extends Controller
      */
     public function index(Request $request): AnonymousResourceCollection
     {
+        /** @var \App\Models\User $user */
         $user = $request->user();
 
         if ($user->isDoctor()) {
@@ -86,6 +87,7 @@ class AppointmentController extends Controller
      */
     public function show(Appointment $appointment): AppointmentResource
     {
+        /** @var \App\Models\User $user */
         $user = auth()->user();
 
         if ($user->isDoctor()) {

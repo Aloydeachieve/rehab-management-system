@@ -2,10 +2,12 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
+import { useUser } from '@/lib/auth';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as zod from 'zod';
 import { useState } from 'react';
+import Link from 'next/link';
 
 interface StaffUser {
   id: number;
@@ -37,14 +39,18 @@ const staffSchema = zod.object({
 type StaffFormValues = zod.infer<typeof staffSchema>;
 
 export default function StaffPage() {
+  const { data: currentUser, isLoading: userLoading } = useUser();
   const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingStaff, setEditingStaff] = useState<StaffUser | null>(null);
+
+  const isAdmin = currentUser?.roles?.includes('admin');
 
   // Fetch staff users
   const { data: staffRes, isLoading, isError } = useQuery({
     queryKey: ['staff'],
     queryFn: async () => (await api.get('/users')).data,
+    enabled: !!isAdmin,
   });
 
   const staffList: StaffUser[] = staffRes?.users ?? [];
@@ -171,17 +177,49 @@ export default function StaffPage() {
     }
   };
 
+  if (userLoading) {
+    return (
+      <div className="flex justify-center items-center py-20 bg-white border border-brand-cream-dark/60 rounded-2xl">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-cream-dark/30 border-t-brand-primary" />
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="rounded-2xl border border-brand-cream-dark/60 bg-white p-8 text-center max-w-xl mx-auto shadow-sm my-12">
+        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-amber-100 text-amber-700">
+          <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+          </svg>
+        </div>
+        <h2 className="font-serif text-xl font-bold text-brand-charcoal">Administrator Access Required</h2>
+        <p className="mt-2 text-xs text-brand-muted leading-relaxed">
+          Staff account administration and credential provisioning can only be performed by System Administrators.
+        </p>
+        <div className="mt-6">
+          <Link
+            href="/dashboard"
+            className="inline-flex items-center gap-2 rounded-xl bg-brand-primary px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-brand-primary-dark transition"
+          >
+            Return to Dashboard
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 text-brand-charcoal-light">
       {/* Header action */}
-      <div className="flex justify-between items-center bg-white p-4 rounded-xl border border-zinc-200 shadow-sm">
+      <div className="flex justify-between items-center bg-white p-4.5 rounded-2xl border border-brand-cream-dark/60 shadow-sm">
         <div>
-          <h2 className="text-base font-bold text-zinc-900">Manage Staff Accounts</h2>
-          <p className="text-xs text-zinc-400">Add, update, or deactivate accounts for doctors, receptionists, and admins.</p>
+          <h2 className="font-serif text-base font-bold text-brand-charcoal">Manage Staff Accounts</h2>
+          <p className="text-xs text-brand-muted font-medium mt-0.5">Add, update, or deactivate accounts for doctors, receptionists, and admins.</p>
         </div>
         <button
           onClick={handleOpenCreateModal}
-          className="rounded-full bg-teal-600 hover:bg-teal-700 px-4 py-2 text-xs font-semibold text-white shadow-sm"
+          className="rounded-full bg-brand-accent hover:bg-brand-accent-dark px-5 py-2.5 text-xs font-bold text-white shadow-md shadow-brand-accent/20 transition-all cursor-pointer"
         >
           + Add Staff Account
         </button>
@@ -189,17 +227,17 @@ export default function StaffPage() {
 
       {/* Staff Table */}
       {isLoading ? (
-        <div className="flex justify-center items-center py-20 bg-white border border-zinc-200 rounded-2xl">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-zinc-200 border-t-teal-600" />
+        <div className="flex justify-center items-center py-20 bg-white border border-brand-cream-dark/60 rounded-2xl">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-cream-dark/30 border-t-brand-primary" />
         </div>
       ) : isError ? (
-        <div className="rounded-2xl border border-red-200 bg-red-50 p-8 text-center text-sm text-red-800">
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-8 text-center text-sm text-red-800 border-red-200/50">
           An error occurred while fetching staff directory.
         </div>
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
-          <table className="min-w-full divide-y divide-zinc-200 text-left text-sm text-zinc-500">
-            <thead className="bg-zinc-50 text-xs font-semibold text-zinc-700 uppercase tracking-wider">
+        <div className="overflow-hidden rounded-2xl border border-brand-cream-dark/60 bg-white shadow-sm">
+          <table className="min-w-full divide-y divide-brand-cream-dark/35 text-left text-sm text-brand-charcoal-light">
+            <thead className="bg-brand-cream/45 text-xs font-bold text-brand-charcoal uppercase tracking-wider">
               <tr>
                 <th className="px-6 py-4">Name</th>
                 <th className="px-6 py-4">Contact</th>
@@ -209,54 +247,54 @@ export default function StaffPage() {
                 <th className="px-6 py-4 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-200">
+            <tbody className="divide-y divide-brand-cream-dark/30 bg-white">
               {staffList.map((staff) => (
-                <tr key={staff.id} className="hover:bg-zinc-50/50">
+                <tr key={staff.id} className="hover:bg-brand-cream/10 transition-colors">
                   <td className="px-6 py-4">
-                    <p className="font-semibold text-zinc-800">{staff.name}</p>
+                    <p className="font-semibold text-brand-charcoal">{staff.name}</p>
                     {staff.staff_profile?.profession && (
-                      <p className="text-xs text-zinc-400">
+                      <p className="text-xs text-brand-muted font-semibold mt-0.5">
                         {staff.staff_profile.profession}
                         {staff.staff_profile.license_number && ` (Lic: ${staff.staff_profile.license_number})`}
                       </p>
                     )}
                   </td>
                   <td className="px-6 py-4">
-                    <p className="text-zinc-700 font-medium">{staff.email}</p>
-                    {staff.phone && <p className="text-xs text-zinc-400">{staff.phone}</p>}
+                    <p className="text-brand-charcoal font-semibold">{staff.email}</p>
+                    {staff.phone && <p className="text-xs text-brand-muted font-semibold mt-0.5">{staff.phone}</p>}
                   </td>
                   <td className="px-6 py-4">
-                    <span className="inline-flex items-center rounded-full bg-teal-50 px-2.5 py-0.5 text-xs font-semibold text-teal-800 ring-1 ring-inset ring-teal-600/20 uppercase">
+                    <span className="inline-flex items-center rounded-lg bg-brand-cream border border-brand-cream-dark/65 px-2.5 py-0.5 text-xs font-bold text-brand-charcoal-light uppercase">
                       {staff.roles.join(', ')}
                     </span>
                   </td>
                   <td className="px-6 py-4">
                     <span
-                      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ring-inset ${
+                      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold uppercase ring-1 ring-inset ${
                         staff.status === 'active'
-                          ? 'bg-teal-50 text-teal-800 ring-teal-600/20'
+                          ? 'bg-brand-primary/10 text-brand-primary ring-brand-primary/20'
                           : 'bg-red-50 text-red-800 ring-red-600/20'
                       }`}
                     >
                       {staff.status}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-xs text-zinc-400">
+                  <td className="px-6 py-4 text-xs text-brand-muted font-medium">
                     {staff.last_login_at ? new Date(staff.last_login_at).toLocaleString() : 'Never'}
                   </td>
                   <td className="px-6 py-4 text-right space-x-2 whitespace-nowrap">
                     <button
                       onClick={() => handleOpenEditModal(staff)}
-                      className="rounded-full bg-white border border-zinc-200 px-2.5 py-1 text-xs font-semibold text-zinc-700 hover:bg-zinc-50"
+                      className="rounded-full bg-white border border-brand-cream-dark/60 px-3 py-1.5 text-xs font-bold text-brand-charcoal hover:bg-brand-cream/35 transition-all cursor-pointer"
                     >
                       Edit
                     </button>
                     <button
                       onClick={() => handleToggleStatus(staff.id, staff.name)}
-                      className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                      className={`rounded-full px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
                         staff.status === 'active'
-                          ? 'bg-red-50 text-red-600 hover:bg-red-100/50'
-                          : 'bg-teal-50 text-teal-700 hover:bg-teal-100/50'
+                          ? 'bg-red-50 text-red-600 hover:bg-red-100/60'
+                          : 'bg-brand-primary/10 text-brand-primary hover:bg-brand-primary/20'
                       }`}
                     >
                       {staff.status === 'active' ? 'Deactivate' : 'Activate'}
@@ -271,55 +309,55 @@ export default function StaffPage() {
 
       {/* Modal Dialog */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/40 backdrop-blur-sm p-4">
-          <div className="w-full max-w-lg rounded-2xl border border-zinc-200 bg-white p-6 shadow-xl space-y-6">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-brand-charcoal/45 backdrop-blur-xs p-4">
+          <div className="w-full max-w-lg rounded-2xl border border-brand-cream-dark/60 bg-white p-6 shadow-xl space-y-6 text-brand-charcoal-light">
             <div>
-              <h3 className="text-lg font-bold text-zinc-950">
+              <h3 className="font-serif text-lg font-bold text-brand-charcoal">
                 {editingStaff ? 'Edit Staff Account' : 'Add New Staff Account'}
               </h3>
-              <p className="mt-1 text-xs text-zinc-400">
+              <p className="mt-1 text-xs text-brand-muted font-medium">
                 {editingStaff ? 'Modify existing staff credentials and configurations.' : 'Register a new employee into the system.'}
               </p>
             </div>
 
             {/* Error notifications */}
             {(createMutation.isError || updateMutation.isError) && (
-              <div className="rounded-lg bg-red-50 p-4 text-xs text-red-800 border border-red-200">
+              <div className="rounded-xl bg-red-50 p-4 text-xs text-red-800 border border-red-200/50">
                 {((createMutation.error || updateMutation.error) as any)?.response?.data?.message || 'Submission failed.'}
               </div>
             )}
 
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 text-zinc-700">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 text-brand-charcoal-light">
               {/* Name */}
               <div>
-                <label className="block text-xs font-semibold text-zinc-700">Full Name *</label>
+                <label className="block text-xs font-semibold text-brand-charcoal-light uppercase tracking-wider mb-1.5">Full Name *</label>
                 <input
                   type="text"
                   {...register('name')}
-                  className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                  className="block w-full rounded-xl border border-brand-cream-dark/80 bg-brand-cream-light/35 px-4.5 py-2.5 text-sm text-brand-charcoal placeholder-brand-muted/70 shadow-sm focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary focus:bg-white transition-all"
                   placeholder="e.g. Dr. Ngozi Ezenwa"
                 />
-                {errors.name && <p className="mt-1 text-xs text-red-600">{errors.name.message}</p>}
+                {errors.name && <p className="mt-1.5 text-xs text-red-600 font-medium">{errors.name.message}</p>}
               </div>
 
               {/* Email & Phone grid */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-zinc-700">Email Address *</label>
+                  <label className="block text-xs font-semibold text-brand-charcoal-light uppercase tracking-wider mb-1.5">Email Address *</label>
                   <input
                     type="email"
                     {...register('email')}
-                    className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                    className="block w-full rounded-xl border border-brand-cream-dark/80 bg-brand-cream-light/35 px-4.5 py-2.5 text-sm text-brand-charcoal placeholder-brand-muted/70 shadow-sm focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary focus:bg-white transition-all"
                     placeholder="e.g. ngozi@rehabcenter.local"
                   />
-                  {errors.email && <p className="mt-1 text-xs text-red-600">{errors.email.message}</p>}
+                  {errors.email && <p className="mt-1.5 text-xs text-red-600 font-medium">{errors.email.message}</p>}
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-zinc-700">Phone Number</label>
+                  <label className="block text-xs font-semibold text-brand-charcoal-light uppercase tracking-wider mb-1.5">Phone Number</label>
                   <input
                     type="text"
                     {...register('phone')}
-                    className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                    className="block w-full rounded-xl border border-brand-cream-dark/80 bg-brand-cream-light/35 px-4.5 py-2.5 text-sm text-brand-charcoal placeholder-brand-muted/70 shadow-sm focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary focus:bg-white transition-all"
                     placeholder="e.g. +234 803 123 4567"
                   />
                 </div>
@@ -327,25 +365,25 @@ export default function StaffPage() {
 
               {/* Password */}
               <div>
-                <label className="block text-xs font-semibold text-zinc-700">
+                <label className="block text-xs font-semibold text-brand-charcoal-light uppercase tracking-wider mb-1.5">
                   Password {editingStaff ? '(Leave blank to keep current)' : '*'}
                 </label>
                 <input
                   type="password"
                   {...register('password')}
-                  className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                  className="block w-full rounded-xl border border-brand-cream-dark/80 bg-brand-cream-light/35 px-4.5 py-2.5 text-sm text-brand-charcoal placeholder-brand-muted/70 shadow-sm focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary focus:bg-white transition-all"
                   placeholder={editingStaff ? '••••••••' : 'Minimum 8 characters'}
                 />
-                {errors.password && <p className="mt-1 text-xs text-red-600">{errors.password.message}</p>}
+                {errors.password && <p className="mt-1.5 text-xs text-red-600 font-medium">{errors.password.message}</p>}
               </div>
 
               {/* Role & Status grid */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-zinc-700">System Role *</label>
+                  <label className="block text-xs font-semibold text-brand-charcoal-light uppercase tracking-wider mb-1.5">System Role *</label>
                   <select
                     {...register('role')}
-                    className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-600 bg-white focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                    className="block w-full rounded-xl border border-brand-cream-dark/80 bg-brand-cream-light/35 px-4.5 py-2.5 text-sm text-brand-charcoal-light bg-white focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary focus:bg-white transition-all cursor-pointer"
                   >
                     <option value="receptionist">Receptionist</option>
                     <option value="doctor">Doctor / Professional</option>
@@ -353,10 +391,10 @@ export default function StaffPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-zinc-700">Account Status *</label>
+                  <label className="block text-xs font-semibold text-brand-charcoal-light uppercase tracking-wider mb-1.5">Account Status *</label>
                   <select
                     {...register('status')}
-                    className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-600 bg-white focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                    className="block w-full rounded-xl border border-brand-cream-dark/80 bg-brand-cream-light/35 px-4.5 py-2.5 text-sm text-brand-charcoal-light bg-white focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary focus:bg-white transition-all cursor-pointer"
                   >
                     <option value="active">Active</option>
                     <option value="inactive">Inactive</option>
@@ -366,23 +404,23 @@ export default function StaffPage() {
 
               {/* Doctor / Receptionist specific profile fields */}
               {(selectedRole === 'doctor' || selectedRole === 'receptionist') && (
-                <div className="grid grid-cols-2 gap-4 border-t border-zinc-100 pt-4">
+                <div className="grid grid-cols-2 gap-4 border-t border-brand-cream-dark/45 pt-4">
                   <div>
-                    <label className="block text-xs font-semibold text-zinc-700">Profession / Title</label>
+                    <label className="block text-xs font-semibold text-brand-charcoal-light uppercase tracking-wider mb-1.5">Profession / Title</label>
                     <input
                       type="text"
                       {...register('profession')}
-                      className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                      className="block w-full rounded-xl border border-brand-cream-dark/80 bg-brand-cream-light/35 px-4.5 py-2.5 text-sm text-brand-charcoal placeholder-brand-muted/70 shadow-sm focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary focus:bg-white transition-all"
                       placeholder={selectedRole === 'doctor' ? 'e.g. Psychiatrist' : 'e.g. Front Desk Lead'}
                     />
                   </div>
                   {selectedRole === 'doctor' && (
                     <div>
-                      <label className="block text-xs font-semibold text-zinc-700">License Number</label>
+                      <label className="block text-xs font-semibold text-brand-charcoal-light uppercase tracking-wider mb-1.5">License Number</label>
                       <input
                         type="text"
                         {...register('license_number')}
-                        className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                        className="block w-full rounded-xl border border-brand-cream-dark/80 bg-brand-cream-light/35 px-4.5 py-2.5 text-sm text-brand-charcoal placeholder-brand-muted/70 shadow-sm focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary focus:bg-white transition-all"
                         placeholder="e.g. MD-98765-NGR"
                       />
                     </div>
@@ -391,18 +429,18 @@ export default function StaffPage() {
               )}
 
               {/* Modal Actions */}
-              <div className="flex justify-end gap-3 pt-6 border-t border-zinc-100">
+              <div className="flex justify-end gap-3 pt-6 border-t border-brand-cream-dark/45">
                 <button
                   type="button"
                   onClick={handleCloseModal}
-                  className="rounded-full bg-white border border-zinc-200 px-4 py-2 text-xs font-semibold text-zinc-700 hover:bg-zinc-50"
+                  className="rounded-full bg-white border border-brand-cream-dark/60 px-5 py-2.5 text-xs font-bold text-brand-charcoal hover:bg-brand-cream/35 transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={createMutation.isPending || updateMutation.isPending}
-                  className="rounded-full bg-teal-600 px-6 py-2 text-xs font-semibold text-white hover:bg-teal-700 disabled:bg-teal-400"
+                  className="rounded-full bg-brand-accent hover:bg-brand-accent-dark px-5 py-2.5 text-xs font-bold text-white shadow-md shadow-brand-accent/20 transition-all disabled:bg-brand-accent/50 cursor-pointer"
                 >
                   {createMutation.isPending || updateMutation.isPending ? 'Saving...' : 'Save Account'}
                 </button>

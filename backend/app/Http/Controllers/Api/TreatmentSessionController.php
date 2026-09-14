@@ -16,6 +16,7 @@ class TreatmentSessionController extends Controller
      */
     private function validatePatientAccess(Patient $patient): void
     {
+        /** @var \App\Models\User $user */
         $user = auth()->user();
 
         if ($user->isAdmin() || $user->isReceptionist()) {
@@ -41,6 +42,7 @@ class TreatmentSessionController extends Controller
      */
     private function validateWriteAccess(Patient $patient): void
     {
+        /** @var \App\Models\User $user */
         $user = auth()->user();
 
         if ($user->isReceptionist()) {
@@ -73,6 +75,7 @@ class TreatmentSessionController extends Controller
         $session->load('patient');
         $this->validatePatientAccess($session->patient);
 
+        /** @var \App\Models\User $user */
         $user = auth()->user();
 
         // If user is doctor or admin, load clinical records logged during this session
@@ -121,13 +124,18 @@ class TreatmentSessionController extends Controller
 
         $nextSessionNumber = $patient->treatmentSessions()->max('session_number') + 1;
 
-        // Start date & expected end date (exactly 30 days duration)
+        $pricingService = app(\App\Services\TreatmentPricingService::class);
+        $durationDays = $pricingService->getSessionDurationDays();
+        $sessionPrice = $pricingService->getPriceForSessionNumber($nextSessionNumber);
+
+        // Start date & expected end date (configured duration)
         $startDate = \Carbon\Carbon::parse($data['start_date']);
-        $expectedEndDate = $startDate->copy()->addDays(30);
+        $expectedEndDate = $startDate->copy()->addDays($durationDays);
 
         $session = TreatmentSession::create([
             'patient_id' => $patient->id,
             'session_number' => $nextSessionNumber,
+            'session_price' => $sessionPrice,
             'start_date' => $startDate->toDateString(),
             'expected_end_date' => $expectedEndDate->toDateString(),
             'status' => 'active',
@@ -213,12 +221,18 @@ class TreatmentSessionController extends Controller
                 'decision_at' => now(),
             ]);
 
-            // Spawn next session
+            // Spawn next session with configured pricing and duration
+            $pricingService = app(\App\Services\TreatmentPricingService::class);
+            $durationDays = $pricingService->getSessionDurationDays();
+            $nextSessionNumber = $activeSession->session_number + 1;
+            $sessionPrice = $pricingService->getPriceForSessionNumber($nextSessionNumber);
+
             return TreatmentSession::create([
                 'patient_id' => $activeSession->patient_id,
-                'session_number' => $activeSession->session_number + 1,
+                'session_number' => $nextSessionNumber,
+                'session_price' => $sessionPrice,
                 'start_date' => now()->toDateString(),
-                'expected_end_date' => now()->addDays(30)->toDateString(),
+                'expected_end_date' => now()->addDays($durationDays)->toDateString(),
                 'status' => 'active',
                 'payment_status' => 'unpaid',
                 'professional_id' => $activeSession->professional_id,
@@ -274,5 +288,73 @@ class TreatmentSessionController extends Controller
             'message' => 'Patient discharged successfully.',
             'session' => $session->fresh(['professional', 'reassessedByUser', 'decisionByUser']),
         ]);
+    }
+
+    /**
+     * Operational overview listing of treatment sessions across patients.
+     */
+    public function overview(Request $request): JsonResponse
+    {
+        /** @var \App\Models\User $user */
+        $user = auth()->user();
+        $query = TreatmentSession::with(['patient', 'professional', 'invoice', 'decisionByUser']);
+
+        // Doctor restriction: only patients assigned via appointments
+        if ($user->isDoctor() && !$user->isAdmin()) {
+            $assignedPatientIds = \App\Models\Appointment::where('assigned_staff_id', $user->id)
+                ->whereNotNull('patient_id')
+                ->pluck('patient_id');
+            $query->whereIn('patient_id', $assignedPatientIds);
+        }
+
+        // Status filter (default to all active unless specified)
+        $status = $request->query('status', 'active');
+        if ($status !== 'all') {
+            $query->where('status', $status);
+        }
+
+        // Approaching end filter (within 7 days)
+        if ($request->boolean('approaching_end')) {
+            $query->where('status', 'active')
+                ->whereDate('expected_end_date', '<=', now()->addDays(7)->toDateString());
+        }
+
+        // Decision state filter
+        if ($request->query('decision_state') === 'needs_reassessment') {
+            $query->where('status', 'active')->whereNull('reassessed_at');
+        } elseif ($request->query('decision_state') === 'needs_decision') {
+            $query->where('status', 'active')->whereNotNull('reassessed_at')->whereNull('decision_at');
+        }
+
+        // Payment status filter
+        if ($request->filled('payment_status') && $request->payment_status !== 'all') {
+            $query->where('payment_status', $request->payment_status);
+        }
+
+        // Search by patient name or number
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->whereHas('patient', function ($pq) use ($search) {
+                $pq->where('name', 'like', "%{$search}%")
+                   ->orWhere('patient_number', 'like', "%{$search}%");
+            });
+        }
+
+        $query->orderBy('expected_end_date', 'asc');
+
+        $sessions = $query->paginate($request->integer('per_page', 15));
+
+        // Append computed attributes for frontend
+        $sessions->getCollection()->transform(function ($session) {
+            $today = \Carbon\Carbon::today();
+            $expectedEnd = \Carbon\Carbon::parse($session->expected_end_date);
+            $daysRemaining = (int) $today->diffInDays($expectedEnd, false);
+
+            $session->is_approaching_end = $session->status === 'active' && $daysRemaining <= 7;
+            $session->days_remaining = $daysRemaining;
+            return $session;
+        });
+
+        return response()->json($sessions);
     }
 }

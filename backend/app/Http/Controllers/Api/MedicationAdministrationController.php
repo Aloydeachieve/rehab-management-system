@@ -16,6 +16,7 @@ class MedicationAdministrationController extends Controller
      */
     private function validatePatientAccess(Patient $patient): void
     {
+        /** @var \App\Models\User $user */
         $user = auth()->user();
 
         if ($user->isAdmin() || $user->isReceptionist()) {
@@ -41,6 +42,7 @@ class MedicationAdministrationController extends Controller
      */
     private function validateWriteAccess(): void
     {
+        /** @var \App\Models\User $user */
         $user = auth()->user();
 
         if (!$user->isAdmin() && !$user->isReceptionist()) {
@@ -53,6 +55,7 @@ class MedicationAdministrationController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
+        /** @var \App\Models\User $user */
         $user = auth()->user();
 
         $dateStr = $request->query('date', now()->toDateString());

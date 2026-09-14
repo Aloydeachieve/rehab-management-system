@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
+import SupportChatWidget from './components/SupportChatWidget';
 
 export default function PublicLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -18,27 +19,27 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
   ];
 
   return (
-    <div className="flex flex-col min-h-screen bg-zinc-50 text-zinc-900">
+    <div className="flex flex-col min-h-screen bg-brand-cream-light text-brand-charcoal">
       {/* Navigation Header */}
-      <header className="sticky top-0 z-40 w-full border-b border-zinc-200 bg-white/80 backdrop-blur-md">
+      <header className="sticky top-0 z-40 w-full border-b border-brand-cream-dark/50 bg-white/80 backdrop-blur-md">
         <div className="mx-auto flex max-w-7xl h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
           {/* Logo */}
           <div className="flex items-center gap-2">
             <Link href="/" className="flex items-center gap-2">
-              <span className="text-xl font-bold tracking-tight text-teal-600">Nibo<span className="text-zinc-900 font-semibold">Rehab</span></span>
+              <span className="font-serif text-xl font-bold tracking-tight text-brand-primary">Nibo<span className="text-brand-charcoal font-serif font-semibold">Rehab</span></span>
             </Link>
           </div>
 
           {/* Desktop Nav Links */}
-          <nav className="hidden md:flex gap-6 text-sm font-medium text-zinc-600">
+          <nav className="hidden md:flex gap-6 text-sm font-semibold text-brand-muted">
             {navigation.map((item) => {
               const isActive = pathname === item.href;
               return (
                 <Link
                   key={item.name}
                   href={item.href}
-                  className={`transition-colors hover:text-teal-600 ${
-                    isActive ? 'text-teal-600 font-semibold' : ''
+                  className={`transition-colors hover:text-brand-accent ${
+                    isActive ? 'text-brand-accent font-bold' : ''
                   }`}
                 >
                   {item.name}
@@ -51,13 +52,13 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
           <div className="hidden md:flex items-center gap-4">
             <Link
               href="/login"
-              className="text-sm font-medium text-zinc-500 hover:text-zinc-800 transition-colors"
+              className="text-sm font-semibold text-brand-muted hover:text-brand-charcoal transition-colors"
             >
               Staff Portal
             </Link>
             <Link
               href="/book-appointment"
-              className="inline-flex h-9 items-center justify-center rounded-full bg-teal-600 px-4 text-sm font-medium text-white shadow transition-all hover:bg-teal-700 hover:shadow-md focus-visible:outline-none"
+              className="inline-flex h-9 items-center justify-center rounded-full bg-brand-accent px-5 text-sm font-bold text-white shadow-md shadow-brand-accent/20 transition-all hover:bg-brand-accent-dark hover:scale-102 focus-visible:outline-none cursor-pointer"
             >
               Book Appointment
             </Link>
@@ -66,7 +67,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
           {/* Mobile Menu Button */}
           <button
             type="button"
-            className="inline-flex items-center justify-center rounded-md p-2 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 md:hidden"
+            className="inline-flex items-center justify-center rounded-md p-2 text-brand-muted hover:bg-brand-cream/40 hover:text-brand-charcoal md:hidden cursor-pointer"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           >
             <span className="sr-only">Open main menu</span>
@@ -88,31 +89,31 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
 
         {/* Mobile Menu Panel */}
         {mobileMenuOpen && (
-          <div className="border-t border-zinc-200 bg-white px-4 py-3 md:hidden">
+          <div className="border-t border-brand-cream-dark/50 bg-white px-4 py-3 md:hidden">
             <div className="space-y-1 pb-3 pt-2">
               {navigation.map((item) => (
                 <Link
                   key={item.name}
                   href={item.href}
-                  className="block rounded-md px-3 py-2 text-base font-medium text-zinc-600 hover:bg-zinc-50 hover:text-teal-600"
+                  className="block rounded-lg px-3 py-2 text-base font-bold text-brand-muted hover:bg-brand-cream/35 hover:text-brand-accent"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   {item.name}
                 </Link>
               ))}
             </div>
-            <div className="border-t border-zinc-200 pb-3 pt-4">
+            <div className="border-t border-brand-cream-dark/45 pb-3 pt-4">
               <div className="flex items-center justify-between px-3">
                 <Link
                   href="/login"
-                  className="text-base font-medium text-zinc-500 hover:text-zinc-800"
+                  className="text-base font-bold text-brand-muted hover:text-brand-charcoal"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   Staff Portal
                 </Link>
                 <Link
                   href="/book-appointment"
-                  className="inline-flex h-9 items-center justify-center rounded-full bg-teal-600 px-4 text-sm font-medium text-white hover:bg-teal-700"
+                  className="inline-flex h-9 items-center justify-center rounded-full bg-brand-accent px-5 text-sm font-bold text-white hover:bg-brand-accent-dark cursor-pointer"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   Book Appointment
@@ -127,13 +128,13 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
       <main className="flex-grow">{children}</main>
 
       {/* Footer */}
-      <footer className="border-t border-zinc-200 bg-white">
+      <footer className="border-t border-brand-cream-dark/60 bg-white">
         <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
           <div className="xl:grid xl:grid-cols-3 xl:gap-8">
             {/* Center Info */}
             <div className="space-y-4">
-              <span className="text-xl font-bold text-teal-600">Nibo Rehab</span>
-              <p className="text-sm text-zinc-500 max-w-xs">
+              <span className="font-serif text-xl font-bold text-brand-primary">Nibo Rehab</span>
+              <p className="text-sm text-brand-muted max-w-xs leading-relaxed font-medium">
                 A premier residential rehabilitation and wellness center located in Nibo, Anambra State, Nigeria. We are committed to guidance, clinical care, and recovery.
               </p>
             </div>
@@ -141,25 +142,25 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
             {/* Quick Links & Contact */}
             <div className="mt-12 grid grid-cols-2 gap-8 xl:col-span-2 xl:mt-0">
               <div>
-                <h3 className="text-sm font-semibold text-zinc-950 uppercase tracking-wider">Quick Links</h3>
-                <ul className="mt-4 space-y-2 text-sm text-zinc-500">
+                <h3 className="text-sm font-bold text-brand-charcoal uppercase tracking-wider">Quick Links</h3>
+                <ul className="mt-4 space-y-2 text-sm text-brand-muted font-medium">
                   {navigation.map((item) => (
                     <li key={item.name}>
-                      <Link href={item.href} className="hover:text-teal-600 transition-colors">
+                      <Link href={item.href} className="hover:text-brand-accent transition-colors">
                         {item.name}
                       </Link>
                     </li>
                   ))}
                   <li>
-                    <Link href="/login" className="hover:text-teal-600 transition-colors">
+                    <Link href="/login" className="hover:text-brand-accent transition-colors">
                       Staff Portal
                     </Link>
                   </li>
                 </ul>
               </div>
               <div>
-                <h3 className="text-sm font-semibold text-zinc-950 uppercase tracking-wider">Contact Info</h3>
-                <ul className="mt-4 space-y-2 text-sm text-zinc-500">
+                <h3 className="text-sm font-bold text-brand-charcoal uppercase tracking-wider">Contact Info</h3>
+                <ul className="mt-4 space-y-2 text-sm text-brand-muted font-medium leading-relaxed">
                   <li>Nibo, Awka South LGA,</li>
                   <li>Anambra State, Nigeria</li>
                   <li>Phone: +234 803 000 0000</li>
@@ -169,17 +170,20 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
             </div>
           </div>
 
-          <div className="mt-12 border-t border-zinc-200 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-xs text-zinc-400">
+          <div className="mt-12 border-t border-brand-cream-dark/45 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
+            <p className="text-xs text-brand-muted font-medium">
               &copy; {new Date().getFullYear()} Nibo Rehabilitation Center. All rights reserved.
             </p>
-            <div className="flex gap-6 text-xs text-zinc-400">
-              <Link href="/privacy" className="hover:text-teal-600">Privacy Policy</Link>
-              <Link href="/terms" className="hover:text-teal-600">Terms of Service</Link>
+            <div className="flex gap-6 text-xs text-brand-muted font-medium">
+              <Link href="/privacy" className="hover:text-brand-accent transition-colors">Privacy Policy</Link>
+              <Link href="/terms" className="hover:text-brand-accent transition-colors">Terms of Service</Link>
             </div>
           </div>
         </div>
       </footer>
+
+      {/* Public Guardian Support Chat Widget */}
+      <SupportChatWidget />
     </div>
   );
 }

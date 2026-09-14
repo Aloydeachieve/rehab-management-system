@@ -55,75 +55,75 @@ export default function AdmitPatientPage() {
 
   return (
     <div className="mx-auto max-w-xl space-y-6">
-      <div className="bg-white border border-zinc-200 rounded-2xl p-6 sm:p-8 shadow-sm">
+      <div className="bg-white border border-brand-cream-dark/60 rounded-2xl p-6 sm:p-8 shadow-sm">
         <div>
-          <h2 className="text-xl font-bold text-zinc-900">Record Residential Admission</h2>
-          <p className="mt-1 text-xs text-zinc-400">
+          <h2 className="font-serif text-xl font-bold text-brand-charcoal">Record Residential Admission</h2>
+          <p className="mt-1 text-xs text-brand-muted font-medium">
             Formally log the residential care intake parameters for this patient.
           </p>
         </div>
 
         {mutation.isError && (
-          <div className="mt-6 rounded-lg bg-red-50 p-4 text-xs text-red-800 border border-red-200">
+          <div className="mt-6 rounded-xl bg-red-50 p-4 text-xs text-red-800 border border-red-200/50">
             {((mutation.error as any)?.response?.data?.message) || 'Failed to record admission. Please try again.'}
           </div>
         )}
 
-        <form onSubmit={handleSubmit(onSubmit)} className="mt-8 space-y-6 text-zinc-700">
+        <form onSubmit={handleSubmit(onSubmit)} className="mt-8 space-y-6 text-brand-charcoal-light">
           <div className="space-y-4">
             {/* Date of Admission */}
             <div>
-              <label className="block text-xs font-semibold text-zinc-600">Admission Date *</label>
+              <label className="block text-xs font-semibold text-brand-charcoal-light uppercase tracking-wider mb-1.5">Admission Date *</label>
               <input
                 type="date"
                 {...register('admission_date')}
-                className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-500 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                className="block w-full rounded-xl border border-brand-cream-dark/80 bg-brand-cream-light/35 px-4.5 py-2.5 text-sm text-brand-charcoal-light placeholder-brand-muted/70 shadow-sm focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary focus:bg-white transition-all"
               />
               {errors.admission_date && (
-                <p className="mt-1 text-xs text-red-600">{errors.admission_date.message}</p>
+                <p className="mt-1.5 text-xs text-red-600 font-medium">{errors.admission_date.message}</p>
               )}
             </div>
 
             {/* Type of Admission */}
             <div>
-              <label className="block text-xs font-semibold text-zinc-600">Admission Type *</label>
+              <label className="block text-xs font-semibold text-brand-charcoal-light uppercase tracking-wider mb-1.5">Admission Type *</label>
               <select
                 {...register('admission_type')}
-                className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-600 bg-white focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                className="block w-full rounded-xl border border-brand-cream-dark/80 bg-brand-cream-light/35 px-4.5 py-2.5 text-sm text-brand-charcoal-light bg-white focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary focus:bg-white transition-all cursor-pointer"
               >
                 <option value="voluntary">Voluntary Admission</option>
                 <option value="involuntary">Involuntary Admission</option>
               </select>
               {errors.admission_type && (
-                <p className="mt-1 text-xs text-red-600">{errors.admission_type.message}</p>
+                <p className="mt-1.5 text-xs text-red-600 font-medium">{errors.admission_type.message}</p>
               )}
             </div>
 
             {/* Notes / Intake description */}
             <div>
-              <label className="block text-xs font-semibold text-zinc-600">Intake Notes / Reason</label>
+              <label className="block text-xs font-semibold text-brand-charcoal-light uppercase tracking-wider mb-1.5">Intake Notes / Reason</label>
               <textarea
                 rows={4}
                 {...register('notes')}
-                className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm placeholder-zinc-400 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                className="block w-full rounded-xl border border-brand-cream-dark/80 bg-brand-cream-light/35 px-4.5 py-2.5 text-sm text-brand-charcoal placeholder-brand-muted/70 shadow-sm focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary focus:bg-white transition-all"
                 placeholder="Detail intake observations, client state, accompanying belongings, or guardian instructions..."
               />
             </div>
           </div>
 
           {/* Form Actions */}
-          <div className="flex justify-end gap-3 pt-6 border-t border-zinc-100">
+          <div className="flex justify-end gap-3 pt-6 border-t border-brand-cream-dark/45">
             <button
               type="button"
               onClick={() => router.push(`/dashboard/patients/${id}`)}
-              className="rounded-full bg-white border border-zinc-200 px-5 py-2 text-xs font-semibold text-zinc-700 hover:bg-zinc-50"
+              className="rounded-full bg-white border border-brand-cream-dark/60 px-6 py-2.5 text-xs font-bold text-brand-charcoal hover:bg-brand-cream/35 transition-colors cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={mutation.isPending}
-              className="rounded-full bg-teal-600 px-6 py-2 text-xs font-semibold text-white hover:bg-teal-700 disabled:bg-teal-400 shadow-sm"
+              className="rounded-full bg-brand-accent hover:bg-brand-accent-dark px-6 py-2.5 text-xs font-bold text-white disabled:bg-brand-accent/50 shadow-md shadow-brand-accent/20 transition-all cursor-pointer"
             >
               {mutation.isPending ? 'Saving...' : 'Confirm Admission'}
             </button>

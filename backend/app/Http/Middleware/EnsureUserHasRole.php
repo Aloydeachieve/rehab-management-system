@@ -16,6 +16,10 @@ class EnsureUserHasRole
             return response()->json(['message' => 'Unauthenticated.'], 401);
         }
 
+        if (! ($user instanceof \App\Models\User) || ! method_exists($user, 'hasRole')) {
+            return response()->json(['message' => 'You are not authorized to access this resource.'], 403);
+        }
+
         foreach ($roles as $role) {
             if ($user->hasRole($role)) {
                 return $next($request);

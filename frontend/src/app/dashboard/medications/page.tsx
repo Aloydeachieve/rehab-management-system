@@ -94,49 +94,49 @@ export default function MedicationsWorkspacePage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 text-brand-charcoal-light">
       {/* Header Panel */}
-      <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 bg-white p-6 rounded-2xl border border-zinc-200 shadow-sm">
+      <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 bg-white p-6 rounded-2xl border border-brand-cream-dark/60 shadow-sm">
         <div>
-          <h2 className="text-xl font-bold text-zinc-900">Medication Administration Workspace</h2>
-          <p className="text-xs text-zinc-400 mt-1">
+          <h2 className="font-serif text-xl font-bold text-brand-charcoal">Medication Administration Workspace</h2>
+          <p className="text-xs text-brand-muted mt-1.5 font-medium">
             Rehabilitation eMAR system &bull; Administer doses prescribed under clinician oversight.
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <label className="text-xs font-semibold text-zinc-500 uppercase">Schedule Date:</label>
+        <div className="flex items-center gap-2.5">
+          <label className="text-xs font-bold text-brand-muted uppercase tracking-wider">Schedule Date:</label>
           <input
             type="date"
             value={selectedDate}
             onChange={(e) => setSelectedDate(e.target.value)}
-            className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm bg-white focus:border-teal-500 focus:outline-none"
+            className="rounded-xl border border-brand-cream-dark/80 bg-brand-cream-light/35 px-4 py-2 text-sm text-brand-charcoal-light bg-white focus:border-brand-primary focus:outline-none transition-all cursor-pointer"
           />
         </div>
       </div>
 
       {/* Main Schedule Workspace */}
-      <div className="bg-white border border-zinc-200 rounded-2xl shadow-sm overflow-hidden">
-        <div className="p-6 border-b border-zinc-100 bg-zinc-50/50">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+      <div className="bg-white border border-brand-cream-dark/60 rounded-2xl shadow-sm overflow-hidden">
+        <div className="p-6 border-b border-brand-cream-dark/45 bg-brand-cream/10">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <h3 className="text-sm font-bold text-teal-700 uppercase tracking-wider">
+              <h3 className="text-sm font-bold text-brand-primary uppercase tracking-wider">
                 Daily Scheduled Administrations ({administrations?.length ?? 0})
               </h3>
-              <p className="text-xs text-zinc-400 mt-0.5">
+              <p className="text-xs text-brand-muted mt-1 font-medium">
                 Staff record administration state updates according to scheduled prescription times.
               </p>
             </div>
-            <div className="bg-teal-50 border border-teal-600/10 text-teal-800 rounded-lg p-2 text-xs font-medium max-w-sm">
+            <div className="bg-brand-primary/10 border border-brand-primary/20 text-brand-primary rounded-xl p-3 text-xs font-bold max-w-sm leading-relaxed shadow-sm">
               ℹ️ Staff may administer medication under active doctor prescriptions, they cannot prescribe.
             </div>
           </div>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-zinc-600 border-collapse">
+          <table className="w-full text-left text-sm text-brand-charcoal-light border-collapse">
             <thead>
-              <tr className="bg-zinc-50 border-b border-zinc-100 text-xs font-bold text-zinc-400 uppercase tracking-wider">
+              <tr className="bg-brand-cream/45 border-b border-brand-cream-dark/45 text-xs font-bold text-brand-charcoal uppercase tracking-wider">
                 <th className="py-3 px-6">Patient</th>
                 <th className="py-3 px-6">Medication / Dosage</th>
                 <th className="py-3 px-6">Scheduled Time</th>
@@ -145,54 +145,54 @@ export default function MedicationsWorkspacePage() {
                 <th className="py-3 px-6 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-100">
+            <tbody className="divide-y divide-brand-cream-dark/30 bg-white">
               {administrations?.map((admin) => {
                 const scheduledTime = new Date(admin.scheduled_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                 const isScheduled = admin.status === 'scheduled';
                 return (
-                  <tr key={admin.id} className="hover:bg-zinc-50/50 transition-colors">
+                  <tr key={admin.id} className="hover:bg-brand-cream/10 transition-colors">
                     <td className="py-4 px-6">
-                      <div className="font-semibold text-zinc-800">{admin.patient.name}</div>
-                      <div className="text-[10px] text-zinc-400 mt-0.5">{admin.patient.patient_number}</div>
+                      <div className="font-semibold text-brand-charcoal">{admin.patient.name}</div>
+                      <div className="text-[10px] text-brand-muted mt-1 font-bold">{admin.patient.patient_number}</div>
                     </td>
                     <td className="py-4 px-6">
-                      <div className="font-semibold text-teal-700">{admin.prescription_item.medication_name} ({admin.prescription_item.dosage})</div>
-                      <div className="text-xs text-zinc-400 mt-0.5">{admin.prescription_item.frequency}</div>
+                      <div className="font-semibold text-brand-primary">{admin.prescription_item.medication_name} ({admin.prescription_item.dosage})</div>
+                      <div className="text-xs text-brand-muted font-medium mt-1">{admin.prescription_item.frequency}</div>
                       {admin.prescription_item.instructions && (
-                        <div className="text-[10px] italic text-zinc-400 mt-1">Instructions: {admin.prescription_item.instructions}</div>
+                        <div className="text-[10px] italic text-brand-muted mt-1 font-medium">Instructions: {admin.prescription_item.instructions}</div>
                       )}
                     </td>
-                    <td className="py-4 px-6 font-semibold text-zinc-700">
+                    <td className="py-4 px-6 font-semibold text-brand-charcoal">
                       {scheduledTime}
                     </td>
                     <td className="py-4 px-6">
-                      <span className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-semibold ring-1 ring-inset ${
+                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold uppercase ring-1 ring-inset ${
                         admin.status === 'scheduled'
-                          ? 'bg-amber-50 text-amber-700 ring-amber-600/10'
+                          ? 'bg-amber-50 text-amber-700 ring-amber-600/20'
                           : admin.status === 'given'
-                          ? 'bg-emerald-50 text-emerald-700 ring-emerald-600/10'
+                          ? 'bg-emerald-50 text-emerald-800 ring-emerald-600/20'
                           : admin.status === 'missed'
-                          ? 'bg-rose-50 text-rose-700 ring-rose-600/10'
+                          ? 'bg-rose-50 text-rose-800 ring-rose-600/20'
                           : admin.status === 'refused'
-                          ? 'bg-purple-50 text-purple-700 ring-purple-600/10'
-                          : 'bg-zinc-50 text-zinc-600 ring-zinc-500/10'
+                          ? 'bg-purple-50 text-purple-800 ring-purple-600/20'
+                          : 'bg-brand-cream text-brand-charcoal-light ring-brand-cream-dark/45'
                       }`}>
                         {admin.status}
                       </span>
                     </td>
-                    <td className="py-4 px-6 text-xs space-y-1">
+                    <td className="py-4 px-6 text-xs space-y-1 font-medium text-brand-charcoal-light">
                       {admin.administering_staff && (
                         <div>
-                          Logged by: <strong>{admin.administering_staff.name}</strong>
+                          Logged by: <strong className="text-brand-charcoal">{admin.administering_staff.name}</strong>
                           {admin.administered_at && (
-                            <span className="text-[10px] text-zinc-400 block">
+                            <span className="text-[10px] text-brand-muted block font-medium mt-0.5">
                               at {new Date(admin.administered_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </span>
                           )}
                         </div>
                       )}
                       {admin.notes && (
-                        <div className="text-[10px] text-zinc-500 bg-zinc-50 border border-zinc-100 p-1 rounded italic">
+                        <div className="text-[10px] text-brand-charcoal-light bg-brand-cream-light border border-brand-cream-dark/60 p-2 rounded-xl italic font-medium leading-relaxed mt-1">
                           Notes: {admin.notes}
                         </div>
                       )}
@@ -202,31 +202,31 @@ export default function MedicationsWorkspacePage() {
                         <div className="flex justify-end gap-1.5">
                           <button
                             onClick={() => handleOpenAction(admin.id, 'given')}
-                            className="rounded-full bg-emerald-600 hover:bg-emerald-700 px-2.5 py-1 text-xs font-semibold text-white shadow-sm transition-colors"
+                            className="rounded-full bg-emerald-600 hover:bg-emerald-700 px-3 py-1.5 text-xs font-bold text-white shadow-sm transition-colors cursor-pointer"
                           >
                             Given
                           </button>
                           <button
                             onClick={() => handleOpenAction(admin.id, 'missed')}
-                            className="rounded-full bg-rose-50 border border-rose-200 text-rose-700 hover:bg-rose-100 px-2.5 py-1 text-xs font-semibold shadow-sm transition-colors"
+                            className="rounded-full bg-rose-50 border border-rose-200/50 text-rose-700 hover:bg-rose-100/60 px-3 py-1.5 text-xs font-bold shadow-sm transition-colors cursor-pointer"
                           >
                             Missed
                           </button>
                           <button
                             onClick={() => handleOpenAction(admin.id, 'refused')}
-                            className="rounded-full bg-purple-50 border border-purple-200 text-purple-700 hover:bg-purple-100 px-2.5 py-1 text-xs font-semibold shadow-sm transition-colors"
+                            className="rounded-full bg-purple-50 border border-purple-200/50 text-purple-700 hover:bg-purple-100/60 px-3 py-1.5 text-xs font-bold shadow-sm transition-colors cursor-pointer"
                           >
                             Refused
                           </button>
                           <button
                             onClick={() => handleOpenAction(admin.id, 'cancelled')}
-                            className="rounded-full bg-zinc-100 border border-zinc-300 text-zinc-700 hover:bg-zinc-200 px-2.5 py-1 text-xs font-semibold shadow-sm transition-colors"
+                            className="rounded-full bg-white border border-brand-cream-dark/60 text-brand-charcoal hover:bg-brand-cream/35 px-3 py-1.5 text-xs font-bold shadow-sm transition-colors cursor-pointer"
                           >
                             Cancel
                           </button>
                         </div>
                       ) : (
-                        <span className="text-xs text-zinc-400">-</span>
+                        <span className="text-xs text-brand-muted font-medium">-</span>
                       )}
                     </td>
                   </tr>
@@ -235,7 +235,7 @@ export default function MedicationsWorkspacePage() {
 
               {(!administrations || administrations.length === 0) && (
                 <tr>
-                  <td colSpan={6} className="py-12 px-6 text-center text-sm text-zinc-400 italic">
+                  <td colSpan={6} className="py-12 px-6 text-center text-sm text-brand-muted font-medium italic bg-white">
                     No medication administrations scheduled for the selected date.
                   </td>
                 </tr>
@@ -247,44 +247,44 @@ export default function MedicationsWorkspacePage() {
 
       {/* Confirmation Actions Dialog Modal */}
       {activeAdminId !== null && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/40 backdrop-blur-sm">
-          <div className="w-full max-w-md bg-white border border-zinc-200 rounded-2xl p-6 shadow-xl space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-brand-charcoal/45 backdrop-blur-xs">
+          <div className="w-full max-w-md bg-white border border-brand-cream-dark/60 rounded-2xl p-6 shadow-xl space-y-5 text-brand-charcoal-light">
             <div>
-              <h3 className="text-md font-bold text-zinc-950 capitalize">
+              <h3 className="font-serif text-lg font-bold text-brand-charcoal capitalize">
                 Confirm Medication State: {actionStatus}
               </h3>
-              <p className="text-xs text-zinc-400 mt-1">
+              <p className="text-xs text-brand-muted mt-1.5 font-medium">
                 Record logs for the selected scheduled medication dose.
               </p>
             </div>
 
             <div className="space-y-2">
-              <label className="block text-xs font-semibold text-zinc-500 uppercase">
-                {actionStatus === 'given' ? 'Optional Notes' : 'Reason / Findings Notes (Required)'}
+              <label className="block text-xs font-semibold text-brand-charcoal-light uppercase tracking-wider mb-1.5">
+                {actionStatus === 'given' ? 'Optional Notes' : 'Reason / Findings Notes (Required) *'}
               </label>
               <textarea
                 rows={3}
                 value={actionNotes}
                 onChange={(e) => setActionNotes(e.target.value)}
                 placeholder={actionStatus === 'given' ? 'Enter any logging note...' : 'Patient refused due to feeling unwell / missed dose parameter detail...'}
-                className="block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-teal-500 focus:outline-none bg-white"
+                className="block w-full rounded-xl border border-brand-cream-dark/80 bg-brand-cream-light/35 px-4.5 py-2.5 text-sm text-brand-charcoal placeholder-brand-muted/70 focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary focus:bg-white transition-all"
               />
             </div>
 
-            <div className="flex justify-end gap-2 pt-2 border-t border-zinc-100">
+            <div className="flex justify-end gap-3 pt-2.5 border-t border-brand-cream-dark/45">
               <button
                 onClick={() => {
                   setActiveAdminId(null);
                   setActionNotes('');
                 }}
-                className="rounded-full bg-white border border-zinc-200 hover:bg-zinc-50 px-4 py-2 text-xs font-semibold text-zinc-700 shadow-sm transition-colors"
+                className="rounded-full bg-white border border-brand-cream-dark/60 hover:bg-brand-cream/35 px-5 py-2.5 text-xs font-bold text-brand-charcoal shadow-sm transition-colors cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 onClick={handleConfirmAction}
                 disabled={updateMedicationStatus.isPending || (actionStatus !== 'given' && !actionNotes)}
-                className="rounded-full bg-teal-600 hover:bg-teal-700 px-4 py-2 text-xs font-semibold text-white shadow-sm transition-colors disabled:opacity-50"
+                className="rounded-full bg-brand-accent hover:bg-brand-accent-dark px-5 py-2.5 text-xs font-bold text-white shadow-md shadow-brand-accent/20 transition-all disabled:bg-brand-accent/50 cursor-pointer"
               >
                 {updateMedicationStatus.isPending ? 'Saving...' : 'Confirm Action'}
               </button>

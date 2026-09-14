@@ -14,6 +14,7 @@ class TreatmentSession extends Model
     protected $fillable = [
         'patient_id',
         'session_number',
+        'session_price',
         'start_date',
         'expected_end_date',
         'actual_end_date',
@@ -29,6 +30,7 @@ class TreatmentSession extends Model
     ];
 
     protected $casts = [
+        'session_price' => 'decimal:2',
         'start_date' => 'date',
         'expected_end_date' => 'date',
         'actual_end_date' => 'date',
@@ -79,5 +81,15 @@ class TreatmentSession extends Model
     public function progressNotes(): HasMany
     {
         return $this->hasMany(ProgressNote::class);
+    }
+
+    public function invoices(): HasMany
+    {
+        return $this->hasMany(Invoice::class);
+    }
+
+    public function invoice(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(Invoice::class)->latestOfMany();
     }
 }

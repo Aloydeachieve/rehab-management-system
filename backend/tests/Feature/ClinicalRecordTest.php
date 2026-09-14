@@ -255,4 +255,51 @@ class ClinicalRecordTest extends TestCase
             'status' => 'active',
         ]);
     }
+
+    /**
+     * Test prescription index returns paginated structure for admin and blocks receptionist.
+     */
+    public function test_prescription_index_returns_paginated_structure_for_admin_and_blocks_receptionist(): void
+    {
+        // 1. Create a prescription as doctor
+        Sanctum::actingAs($this->authorizedDoctor);
+        $this->postJson("/api/v1/patients/{$this->patient->id}/prescriptions", [
+            'notes' => 'Contract test prescription',
+            'items' => [
+                ['medication_name' => 'Amoxicillin', 'dosage' => '500mg', 'frequency' => 'TID', 'duration' => '7 days']
+            ]
+        ])->assertStatus(201);
+
+        // 2. Admin can read and receives paginated response structure ({ current_page, data: [...] })
+        Sanctum::actingAs($this->adminUser);
+        $adminRes = $this->getJson("/api/v1/patients/{$this->patient->id}/prescriptions");
+        $adminRes->assertStatus(200)
+            ->assertJsonStructure([
+                'current_page',
+                'data' => [
+                    '*' => [
+                        'id',
+                        'patient_id',
+                        'practitioner_id',
+                        'status',
+                        'notes',
+                        'items',
+                        'practitioner',
+                    ]
+                ],
+                'per_page',
+                'total',
+            ])
+            ->assertJsonCount(1, 'data');
+
+        // 3. Receptionist is blocked with 403 Forbidden
+        Sanctum::actingAs($this->receptionistUser);
+        $recepRes = $this->getJson("/api/v1/patients/{$this->patient->id}/prescriptions");
+        $recepRes->assertStatus(403);
+
+        // 4. Unauthorized doctor is blocked with 403 Forbidden (patient isolation)
+        Sanctum::actingAs($this->unauthorizedDoctor);
+        $unauthRes = $this->getJson("/api/v1/patients/{$this->patient->id}/prescriptions");
+        $unauthRes->assertStatus(403);
+    }
 }
