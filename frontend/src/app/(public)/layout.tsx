@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import SupportChatWidget from './components/SupportChatWidget';
+import { Stethoscope, ShieldCheck, Menu, X, Calendar, Phone, MapPin } from 'lucide-react';
 
 export default function PublicLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -19,27 +20,60 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
   ];
 
   return (
-    <div className="flex flex-col min-h-screen bg-brand-cream-light text-brand-charcoal">
-      {/* Navigation Header */}
-      <header className="sticky top-0 z-40 w-full border-b border-brand-cream-dark/50 bg-white/80 backdrop-blur-md">
-        <div className="mx-auto flex max-w-7xl h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
-          {/* Logo */}
-          <div className="flex items-center gap-2">
-            <Link href="/" className="flex items-center gap-2">
-              <span className="font-serif text-xl font-bold tracking-tight text-brand-primary">Nibo<span className="text-brand-charcoal font-serif font-semibold">Rehab</span></span>
+    <div className="flex flex-col min-h-screen bg-brand-cream-light text-brand-charcoal selection:bg-brand-primary/20 selection:text-brand-primary">
+      {/* Top Notification Bar - Emergency & Location */}
+      <div className="bg-brand-primary-dark text-white/90 text-xs py-2 px-4 border-b border-brand-primary">
+        <div className="mx-auto flex max-w-7xl justify-between items-center text-[11px] font-medium">
+          <div className="flex items-center gap-4">
+            <span className="flex items-center gap-1">
+              <MapPin className="h-3 w-3 text-brand-accent" />
+              Awka South LGA, Anambra State, Nigeria
+            </span>
+            <span className="hidden sm:inline-flex items-center gap-1">
+              <ShieldCheck className="h-3 w-3 text-emerald-400" />
+              Accredited Residential Facility
+            </span>
+          </div>
+          <div className="flex items-center gap-4">
+            <span className="hidden md:inline">24/7 Clinical Helplines</span>
+            <Link href="tel:+2348000000000" className="font-bold text-white hover:underline flex items-center gap-1">
+              <Phone className="h-3 w-3 text-brand-accent" />
+              +234 (0) 800 NIBO CARE
             </Link>
           </div>
+        </div>
+      </div>
 
-          {/* Desktop Nav Links */}
-          <nav className="hidden md:flex gap-6 text-sm font-semibold text-brand-muted">
+      {/* Floating Modern Header */}
+      <header className="sticky top-0 z-40 w-full border-b border-brand-cream-dark/50 bg-white/90 backdrop-blur-md transition-all">
+        <div className="mx-auto flex max-w-7xl h-20 items-center justify-between px-4 sm:px-6 lg:px-8">
+          {/* Logo */}
+          <Link href="/" className="flex items-center gap-3 group">
+            <div className="h-10 w-10 rounded-2xl bg-brand-primary text-white flex items-center justify-center shadow-md shadow-brand-primary/20 group-hover:scale-105 transition-transform">
+              <Stethoscope className="h-5 w-5" />
+            </div>
+            <div>
+              <span className="font-serif text-xl font-bold tracking-tight text-brand-primary">
+                Nibo<span className="text-brand-charcoal font-sans font-semibold">Rehab</span>
+              </span>
+              <span className="block text-[10px] text-brand-muted uppercase font-bold tracking-wider -mt-1">
+                Medical Rehabilitation Center
+              </span>
+            </div>
+          </Link>
+
+          {/* Desktop Nav Links - Floating Pill Container */}
+          <nav className="hidden lg:flex items-center gap-1 bg-brand-cream-light/80 p-1.5 rounded-full border border-brand-cream-dark/60 text-xs font-bold shadow-xs">
             {navigation.map((item) => {
               const isActive = pathname === item.href;
               return (
                 <Link
                   key={item.name}
                   href={item.href}
-                  className={`transition-colors hover:text-brand-accent ${
-                    isActive ? 'text-brand-accent font-bold' : ''
+                  className={`px-4 py-2 rounded-full transition-all ${
+                    isActive
+                      ? 'bg-brand-primary text-white shadow-xs'
+                      : 'text-brand-charcoal hover:text-brand-primary hover:bg-white'
                   }`}
                 >
                   {item.name}
@@ -48,141 +82,157 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
             })}
           </nav>
 
-          {/* CTA / Staff Link */}
-          <div className="hidden md:flex items-center gap-4">
+          {/* Action Pills */}
+          <div className="hidden md:flex items-center gap-2.5">
             <Link
               href="/login"
-              className="text-sm font-semibold text-brand-muted hover:text-brand-charcoal transition-colors"
+              className="rounded-full border border-brand-cream-dark/70 bg-white hover:bg-brand-cream-light px-4 py-2 text-xs font-bold text-brand-charcoal transition-colors cursor-pointer"
             >
               Staff Portal
             </Link>
             <Link
               href="/book-appointment"
-              className="inline-flex h-9 items-center justify-center rounded-full bg-brand-accent px-5 text-sm font-bold text-white shadow-md shadow-brand-accent/20 transition-all hover:bg-brand-accent-dark hover:scale-102 focus-visible:outline-none cursor-pointer"
+              className="inline-flex items-center gap-1.5 rounded-full bg-brand-primary hover:bg-brand-primary-dark px-5 py-2.5 text-xs font-bold text-white shadow-md shadow-brand-primary/20 hover:shadow-lg transition-all hover:scale-102 cursor-pointer"
             >
-              Book Appointment
+              <Calendar className="h-3.5 w-3.5" />
+              <span>Book Appointment</span>
             </Link>
           </div>
 
           {/* Mobile Menu Button */}
           <button
             type="button"
-            className="inline-flex items-center justify-center rounded-md p-2 text-brand-muted hover:bg-brand-cream/40 hover:text-brand-charcoal md:hidden cursor-pointer"
+            className="inline-flex items-center justify-center rounded-2xl p-2 text-brand-charcoal hover:bg-brand-cream-light md:hidden cursor-pointer border border-brand-cream-dark/60"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           >
             <span className="sr-only">Open main menu</span>
-            <svg
-              className="h-6 w-6"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth="1.5"
-              stroke="currentColor"
-            >
-              {mobileMenuOpen ? (
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              ) : (
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-              )}
-            </svg>
+            {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
         </div>
 
         {/* Mobile Menu Panel */}
         {mobileMenuOpen && (
-          <div className="border-t border-brand-cream-dark/50 bg-white px-4 py-3 md:hidden">
-            <div className="space-y-1 pb-3 pt-2">
+          <div className="border-t border-brand-cream-dark/50 bg-white px-4 py-4 md:hidden shadow-lg animate-in slide-in-from-top duration-200">
+            <div className="space-y-1 pb-3">
               {navigation.map((item) => (
                 <Link
                   key={item.name}
                   href={item.href}
-                  className="block rounded-lg px-3 py-2 text-base font-bold text-brand-muted hover:bg-brand-cream/35 hover:text-brand-accent"
+                  className={`block rounded-xl px-4 py-2.5 text-sm font-bold transition-colors ${
+                    pathname === item.href
+                      ? 'bg-brand-primary text-white'
+                      : 'text-brand-charcoal hover:bg-brand-cream-light'
+                  }`}
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   {item.name}
                 </Link>
               ))}
             </div>
-            <div className="border-t border-brand-cream-dark/45 pb-3 pt-4">
-              <div className="flex items-center justify-between px-3">
-                <Link
-                  href="/login"
-                  className="text-base font-bold text-brand-muted hover:text-brand-charcoal"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Staff Portal
-                </Link>
-                <Link
-                  href="/book-appointment"
-                  className="inline-flex h-9 items-center justify-center rounded-full bg-brand-accent px-5 text-sm font-bold text-white hover:bg-brand-accent-dark cursor-pointer"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Book Appointment
-                </Link>
-              </div>
+            <div className="border-t border-brand-cream-dark/45 pt-4 space-y-2">
+              <Link
+                href="/login"
+                className="block text-center rounded-xl border border-brand-cream-dark/70 py-2.5 text-xs font-bold text-brand-charcoal hover:bg-brand-cream-light"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Staff Portal
+              </Link>
+              <Link
+                href="/book-appointment"
+                className="block text-center rounded-xl bg-brand-primary py-2.5 text-xs font-bold text-white hover:bg-brand-primary-dark shadow-sm"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Book Appointment
+              </Link>
             </div>
           </div>
         )}
       </header>
 
-      {/* Main Content Area */}
-      <main className="flex-grow">{children}</main>
+      {/* Main Content */}
+      <main className="flex-1">{children}</main>
 
-      {/* Footer */}
-      <footer className="border-t border-brand-cream-dark/60 bg-white">
-        <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-          <div className="xl:grid xl:grid-cols-3 xl:gap-8">
-            {/* Center Info */}
-            <div className="space-y-4">
-              <span className="font-serif text-xl font-bold text-brand-primary">Nibo Rehab</span>
-              <p className="text-sm text-brand-muted max-w-xs leading-relaxed font-medium">
-                A premier residential rehabilitation and wellness center located in Nibo, Anambra State, Nigeria. We are committed to guidance, clinical care, and recovery.
-              </p>
-            </div>
-            
-            {/* Quick Links & Contact */}
-            <div className="mt-12 grid grid-cols-2 gap-8 xl:col-span-2 xl:mt-0">
-              <div>
-                <h3 className="text-sm font-bold text-brand-charcoal uppercase tracking-wider">Quick Links</h3>
-                <ul className="mt-4 space-y-2 text-sm text-brand-muted font-medium">
-                  {navigation.map((item) => (
-                    <li key={item.name}>
-                      <Link href={item.href} className="hover:text-brand-accent transition-colors">
-                        {item.name}
-                      </Link>
-                    </li>
-                  ))}
-                  <li>
-                    <Link href="/login" className="hover:text-brand-accent transition-colors">
-                      Staff Portal
-                    </Link>
-                  </li>
-                </ul>
+      {/* Modern Healthcare Footer */}
+      <footer className="bg-brand-charcoal text-white border-t border-zinc-800">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-14">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
+            {/* Column 1: Brand */}
+            <div className="space-y-4 md:col-span-1">
+              <div className="flex items-center gap-2.5">
+                <div className="h-9 w-9 rounded-xl bg-brand-primary text-white flex items-center justify-center">
+                  <Stethoscope className="h-5 w-5" />
+                </div>
+                <span className="font-serif text-xl font-bold tracking-tight text-white">
+                  Nibo<span className="text-brand-cream font-sans font-semibold">Rehab</span>
+                </span>
               </div>
-              <div>
-                <h3 className="text-sm font-bold text-brand-charcoal uppercase tracking-wider">Contact Info</h3>
-                <ul className="mt-4 space-y-2 text-sm text-brand-muted font-medium leading-relaxed">
-                  <li>Nibo, Awka South LGA,</li>
-                  <li>Anambra State, Nigeria</li>
-                  <li>Phone: +234 803 000 0000</li>
-                  <li>Email: info@niborehab.org</li>
-                </ul>
+              <p className="text-xs text-zinc-400 leading-relaxed">
+                Dedicated residential rehabilitation, medical detoxification, and behavioral health center in Awka South, Anambra State, Nigeria.
+              </p>
+              <div className="pt-2 text-xs text-brand-accent font-bold">
+                Licensed Clinical Residential Center
+              </div>
+            </div>
+
+            {/* Column 2: Navigation */}
+            <div className="space-y-3">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-300">Quick Navigation</h4>
+              <ul className="space-y-2 text-xs text-zinc-400">
+                <li><Link href="/" className="hover:text-white transition">Home Overview</Link></li>
+                <li><Link href="/about" className="hover:text-white transition">About Our Facility</Link></li>
+                <li><Link href="/services" className="hover:text-white transition">Clinical Services</Link></li>
+                <li><Link href="/facilities" className="hover:text-white transition">Residential Quarters</Link></li>
+                <li><Link href="/faq" className="hover:text-white transition">Frequently Asked Questions</Link></li>
+              </ul>
+            </div>
+
+            {/* Column 3: Clinical Programs */}
+            <div className="space-y-3">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-300">Clinical Focus</h4>
+              <ul className="space-y-2 text-xs text-zinc-400">
+                <li>30-Day Residential Program</li>
+                <li>Medical Detoxification & Stabilization</li>
+                <li>Psychological & Behavioral Therapy</li>
+                <li>Vital Signs & eMAR Medication Care</li>
+                <li>Post-Discharge Reintegration Support</li>
+              </ul>
+            </div>
+
+            {/* Column 4: Contact & Emergency */}
+            <div className="space-y-3">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-300">Contact & Intake</h4>
+              <p className="text-xs text-zinc-400 leading-relaxed">
+                Nibo, Awka South LGA, Anambra State, Nigeria
+              </p>
+              <p className="text-xs text-zinc-400">
+                Inquiries: <strong className="text-white">intake@niborehab.ng</strong>
+              </p>
+              <p className="text-xs text-zinc-400">
+                Phone: <strong className="text-white">+234 (0) 800 6426 2273</strong>
+              </p>
+              <div className="pt-2">
+                <Link
+                  href="/book-appointment"
+                  className="inline-block rounded-full bg-brand-accent hover:bg-brand-accent-dark px-4 py-2 text-xs font-bold text-white shadow-sm transition"
+                >
+                  Book Intake Visit &rarr;
+                </Link>
               </div>
             </div>
           </div>
 
-          <div className="mt-12 border-t border-brand-cream-dark/45 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-xs text-brand-muted font-medium">
-              &copy; {new Date().getFullYear()} Nibo Rehabilitation Center. All rights reserved.
-            </p>
-            <div className="flex gap-6 text-xs text-brand-muted font-medium">
-              <Link href="/privacy" className="hover:text-brand-accent transition-colors">Privacy Policy</Link>
-              <Link href="/terms" className="hover:text-brand-accent transition-colors">Terms of Service</Link>
+          <div className="mt-12 pt-8 border-t border-zinc-800 text-center text-xs text-zinc-500 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <p>&copy; {new Date().getFullYear()} Nibo Rehabilitation Center. All rights reserved.</p>
+            <div className="flex gap-4">
+              <Link href="/privacy" className="hover:text-zinc-300">Privacy Policy</Link>
+              <Link href="/terms" className="hover:text-zinc-300">Terms of Admission</Link>
+              <Link href="/login" className="hover:text-zinc-300">Staff Portal</Link>
             </div>
           </div>
         </div>
       </footer>
 
-      {/* Public Guardian Support Chat Widget */}
+      {/* Interactive Support Chat Widget */}
       <SupportChatWidget />
     </div>
   );

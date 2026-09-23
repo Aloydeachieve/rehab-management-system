@@ -18,6 +18,7 @@ class StoreMedicationAdministrationRequest extends FormRequest
             'patient_id' => ['required', 'exists:patients,id'],
             'prescription_item_id' => ['required', 'exists:prescription_items,id'],
             'scheduled_at' => ['required', 'date'],
+            'dose_slot' => ['nullable', 'string', 'in:morning,afternoon,evening,night'],
             'status' => ['required', 'in:scheduled,given,missed,refused,cancelled'],
             'notes' => ['nullable', 'string'],
         ];

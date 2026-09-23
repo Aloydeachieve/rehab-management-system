@@ -24,7 +24,11 @@ class TreatmentSessionController extends Controller
         }
 
         if ($user->isDoctor()) {
-            $isAssigned = $patient->appointments()
+            $isAssigned = $patient->doctorAssignments()
+                ->where('doctor_id', $user->id)
+                ->where('status', 'active')
+                ->exists()
+                || $patient->appointments()
                 ->where('assigned_staff_id', $user->id)
                 ->exists();
 
@@ -299,11 +303,17 @@ class TreatmentSessionController extends Controller
         $user = auth()->user();
         $query = TreatmentSession::with(['patient', 'professional', 'invoice', 'decisionByUser']);
 
-        // Doctor restriction: only patients assigned via appointments
+        // Doctor restriction: patients assigned via persistent assignment or appointments
         if ($user->isDoctor() && !$user->isAdmin()) {
-            $assignedPatientIds = \App\Models\Appointment::where('assigned_staff_id', $user->id)
-                ->whereNotNull('patient_id')
-                ->pluck('patient_id');
+            $assignedPatientIds = \App\Models\PatientDoctorAssignment::where('doctor_id', $user->id)
+                ->where('status', 'active')
+                ->pluck('patient_id')
+                ->merge(
+                    \App\Models\Appointment::where('assigned_staff_id', $user->id)
+                        ->whereNotNull('patient_id')
+                        ->pluck('patient_id')
+                )
+                ->unique();
             $query->whereIn('patient_id', $assignedPatientIds);
         }
 

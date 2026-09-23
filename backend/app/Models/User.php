@@ -63,6 +63,16 @@ class User extends Authenticatable
         return $this->hasOne(StaffProfile::class);
     }
 
+    public function patientAssignments(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(PatientDoctorAssignment::class, 'doctor_id');
+    }
+
+    public function activePatientAssignments(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(PatientDoctorAssignment::class, 'doctor_id')->where('status', 'active');
+    }
+
     public function hasRole(string $role): bool
     {
         return $this->roles->contains('name', $role);

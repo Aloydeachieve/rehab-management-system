@@ -12,10 +12,11 @@ interface ConversationItem {
   guardian_email: string | null;
   guardian_phone: string;
   relationship: string;
-  patient_id: number;
-  patient_number: string;
+  is_linked?: boolean;
+  patient_id: number | null;
+  patient_number: string | null;
   patient_name: string;
-  patient_status: string;
+  patient_status: string | null;
   unread_count: number;
   latest_activity_at: string;
   latest_message: {
@@ -29,7 +30,7 @@ interface ConversationItem {
 
 interface MessageHistoryItem {
   id: number;
-  patient_id: number;
+  patient_id: number | null;
   guardian_id: number;
   sender_user_id: number | null;
   sender_type: 'guardian' | 'staff';
@@ -44,11 +45,18 @@ export default function ReceptionistMessagesPage() {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedConversation, setSelectedConversation] = useState<{
-    patientId: number;
     guardianId: number;
+    patientId?: number | null;
   } | null>(null);
   const [replyText, setReplyText] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Linking modal state
+  const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
+  const [selectedPatientToLink, setSelectedPatientToLink] = useState<{ id: number; name: string; patient_number: string } | null>(null);
+  const [linkRelationship, setLinkRelationship] = useState('Parent');
+  const [patientSearchTerm, setPatientSearchTerm] = useState('');
+  const [isActionsMenuOpen, setIsActionsMenuOpen] = useState(false);
 
   const canAccessMessages = currentUser?.roles?.some((r) => r === 'admin' || r === 'receptionist');
 
@@ -72,36 +80,45 @@ export default function ReceptionistMessagesPage() {
   useEffect(() => {
     if (!selectedConversation && conversations.length > 0) {
       setSelectedConversation({
-        patientId: conversations[0].patient_id,
         guardianId: conversations[0].guardian_id,
+        patientId: conversations[0].patient_id,
       });
     }
   }, [conversations, selectedConversation]);
 
-  // 2. Fetch active conversation messages
+  // 2. Fetch active conversation messages (supports linked and unlinked guardians)
   const { data: conversationDetail, isLoading: messagesLoading } = useQuery<{
-    patient: { id: number; patient_number: string; name: string; status: string };
-    guardian: { id: number; name: string; email: string | null; phone: string; relationship: string };
+    patient: { id: number; patient_number: string; name: string; status: string } | null;
+    guardian: { id: number; name: string; email: string | null; phone: string; relationship: string; is_linked: boolean };
     messages: MessageHistoryItem[];
   }>({
-    queryKey: ['conversation_detail', selectedConversation?.patientId, selectedConversation?.guardianId],
+    queryKey: ['guardian_conversation', selectedConversation?.guardianId],
     queryFn: async () => {
       if (!selectedConversation) return null;
-      const res = await api.get(
-        `/patients/${selectedConversation.patientId}/messages?guardian_id=${selectedConversation.guardianId}`
-      );
+      const res = await api.get(`/staff/guardians/${selectedConversation.guardianId}/conversation`);
       return res.data;
     },
     enabled: !!selectedConversation && !!canAccessMessages,
     refetchInterval: 3000,
   });
 
+  // Query patients for linking modal
+  const { data: patientsSearchResult, isLoading: patientsSearchLoading } = useQuery({
+    queryKey: ['patients_search_linking', patientSearchTerm],
+    queryFn: async () => {
+      const url = patientSearchTerm ? `/patients?search=${encodeURIComponent(patientSearchTerm)}&per_page=10` : '/patients?per_page=10';
+      const res = await api.get(url);
+      return res.data;
+    },
+    enabled: isLinkModalOpen,
+  });
+
+  const searchedPatients = patientsSearchResult?.data || [];
+
   // 3. Mark conversation messages as read mutation
   const markReadMutation = useMutation({
-    mutationFn: async (vars: { patientId: number; guardianId: number }) => {
-      return (await api.post(`/patients/${vars.patientId}/messages/mark-read`, {
-        guardian_id: vars.guardianId,
-      })).data;
+    mutationFn: async (guardianId: number) => {
+      return (await api.post(`/staff/guardians/${guardianId}/mark-read`)).data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['staff_conversations'] });
@@ -115,10 +132,7 @@ export default function ReceptionistMessagesPage() {
         (m) => m.sender_type === 'guardian' && !m.read_at
       );
       if (hasUnread && !markReadMutation.isPending) {
-        markReadMutation.mutate({
-          patientId: selectedConversation.patientId,
-          guardianId: selectedConversation.guardianId,
-        });
+        markReadMutation.mutate(selectedConversation.guardianId);
       }
     }
   }, [selectedConversation, conversationDetail]);
@@ -128,22 +142,17 @@ export default function ReceptionistMessagesPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [conversationDetail?.messages]);
 
-  const handleSelectConversation = (patientId: number, guardianId: number) => {
-    setSelectedConversation({ patientId, guardianId });
-  };
-
   // 4. Send reply mutation
   const replyMutation = useMutation({
-    mutationFn: async (data: { patientId: number; guardianId: number; message: string }) => {
-      const res = await api.post(`/patients/${data.patientId}/messages`, {
-        guardian_id: data.guardianId,
+    mutationFn: async (data: { guardianId: number; message: string }) => {
+      const res = await api.post(`/staff/guardians/${data.guardianId}/reply`, {
         message: data.message,
       });
       return res.data;
     },
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({
-        queryKey: ['conversation_detail', vars.patientId, vars.guardianId],
+        queryKey: ['guardian_conversation', vars.guardianId],
       });
       queryClient.invalidateQueries({ queryKey: ['staff_conversations'] });
     },
@@ -157,82 +166,133 @@ export default function ReceptionistMessagesPage() {
     setReplyText('');
     try {
       await replyMutation.mutateAsync({
-        patientId: selectedConversation.patientId,
         guardianId: selectedConversation.guardianId,
         message,
       });
     } catch (err: any) {
       alert(err.response?.data?.message || 'Failed to send reply.');
+      setReplyText(message);
+    }
+  };
+
+  // 5. Link Patient mutation
+  const linkPatientMutation = useMutation({
+    mutationFn: async (data: { guardianId: number; patientId: number; relationship: string }) => {
+      return (await api.post(`/staff/guardians/${data.guardianId}/link-patient`, {
+        patient_id: data.patientId,
+        relationship: data.relationship,
+      })).data;
+    },
+    onSuccess: (data) => {
+      setIsLinkModalOpen(false);
+      setSelectedPatientToLink(null);
+      queryClient.invalidateQueries({ queryKey: ['staff_conversations'] });
+      if (selectedConversation) {
+        queryClient.invalidateQueries({ queryKey: ['guardian_conversation', selectedConversation.guardianId] });
+      }
+      alert(data.message || 'Patient successfully linked to guardian.');
+    },
+    onError: (err: any) => {
+      alert(err.response?.data?.message || 'Failed to link patient.');
+    },
+  });
+
+  // 6. Unlink Patient mutation
+  const unlinkPatientMutation = useMutation({
+    mutationFn: async (guardianId: number) => {
+      return (await api.post(`/staff/guardians/${guardianId}/unlink-patient`)).data;
+    },
+    onSuccess: (data) => {
+      setIsActionsMenuOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['staff_conversations'] });
+      if (selectedConversation) {
+        queryClient.invalidateQueries({ queryKey: ['guardian_conversation', selectedConversation.guardianId] });
+      }
+      alert(data.message || 'Guardian unlinked from patient.');
+    },
+    onError: (err: any) => {
+      alert(err.response?.data?.message || 'Failed to unlink guardian.');
+    },
+  });
+
+  const handleConfirmLink = () => {
+    if (!selectedConversation || !selectedPatientToLink) return;
+    linkPatientMutation.mutate({
+      guardianId: selectedConversation.guardianId,
+      patientId: selectedPatientToLink.id,
+      relationship: linkRelationship,
+    });
+  };
+
+  const handleConfirmUnlink = () => {
+    if (!selectedConversation) return;
+    if (confirm('Are you sure you want to unlink this guardian from their patient? Conversation history will be preserved.')) {
+      unlinkPatientMutation.mutate(selectedConversation.guardianId);
     }
   };
 
   const activeConversationItem = conversations.find(
-    (c) =>
-      c.patient_id === selectedConversation?.patientId &&
-      c.guardian_id === selectedConversation?.guardianId
+    (c) => c.guardian_id === selectedConversation?.guardianId
   );
+
+  const isCurrentLinked = conversationDetail?.guardian?.is_linked ?? activeConversationItem?.is_linked ?? false;
 
   if (userLoading) {
     return (
-      <div className="flex justify-center items-center py-20 bg-white border border-brand-cream-dark/60 rounded-2xl">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-cream-dark/30 border-t-brand-primary" />
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-primary" />
       </div>
     );
   }
 
   if (!canAccessMessages) {
     return (
-      <div className="rounded-2xl border border-brand-cream-dark/60 bg-white p-8 text-center max-w-xl mx-auto shadow-sm my-12">
-        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-amber-100 text-amber-700">
-          <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
-          </svg>
-        </div>
-        <h2 className="font-serif text-xl font-bold text-brand-charcoal">Support Inbox Restricted</h2>
-        <p className="mt-2 text-xs text-brand-muted leading-relaxed">
-          Guardian communications and front-desk support chat are managed exclusively by reception and administration personnel.
+      <div className="bg-red-50 border border-red-200 text-red-700 p-6 rounded-2xl text-center">
+        <h3 className="font-bold text-base mb-1">Access Restricted</h3>
+        <p className="text-sm">
+          You do not have permission to view guardian support messages. This section is restricted to
+          receptionists and administrators.
         </p>
-        <div className="mt-6">
-          <Link
-            href="/dashboard"
-            className="inline-flex items-center gap-2 rounded-xl bg-brand-primary px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-brand-primary-dark transition"
-          >
-            Return to Dashboard
-          </Link>
-        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-brand-cream-dark/60">
+    <div className="space-y-6">
+      {/* Top Banner */}
+      <div className="bg-white border border-brand-cream-dark/60 rounded-3xl p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-serif font-bold text-brand-charcoal">Guardian Support Inbox</h2>
-          <p className="text-xs text-brand-muted mt-0.5">
-            Direct communication channel between verified patient guardians and front-desk receptionists.
+          <div className="flex items-center gap-2.5">
+            <h2 className="text-xl font-serif font-bold text-brand-charcoal">Guardian Support Center</h2>
+            <span className="text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-800 px-2.5 py-0.5 rounded-full border border-emerald-300">
+              Receptionist Inbox
+            </span>
+          </div>
+          <p className="text-xs text-brand-muted mt-1">
+            Real-time inquiries from family guardians. Link unlinked guardians to patient records, review recovery updates, and maintain prompt support.
           </p>
         </div>
-        <div className="flex items-center gap-2 text-xs font-semibold text-brand-muted bg-white px-3 py-1.5 rounded-full border border-brand-cream-dark/60 shadow-xs">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span>Live Support Channel</span>
+
+        <div className="flex items-center gap-2 text-xs text-brand-charcoal bg-brand-cream-light/40 border border-brand-cream-dark/50 px-4 py-2 rounded-full self-start md:self-auto">
+          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+          <span className="font-bold">Live Support Active</span>
+          <span className="text-brand-muted">({conversations.length} total threads)</span>
         </div>
       </div>
 
-      {/* Two-Pane WhatsApp-Style Layout */}
-      <div className="bg-white rounded-2xl shadow-sm border border-brand-cream-dark/60 overflow-hidden grid grid-cols-1 md:grid-cols-12 h-[calc(100vh-210px)] min-h-[550px]">
-        {/* Left Pane: Conversations List (5 Cols) */}
-        <div className="md:col-span-5 border-r border-brand-cream-dark/60 flex flex-col bg-brand-cream/30">
+      {/* Main Grid: Inbox Master-Detail Layout */}
+      <div className="bg-white border border-brand-cream-dark/60 rounded-3xl shadow-sm overflow-hidden grid grid-cols-1 md:grid-cols-12 min-h-[620px] max-h-[780px]">
+        {/* Left Pane: Conversation Threads (5 Cols) */}
+        <div className="md:col-span-5 border-r border-brand-cream-dark/60 flex flex-col bg-brand-cream-light/10">
           {/* Search bar */}
-          <div className="p-3 border-b border-brand-cream-dark/60 bg-white">
+          <div className="p-3.5 border-b border-brand-cream-dark/60 bg-white">
             <div className="relative">
               <input
                 type="text"
                 placeholder="Search guardian or patient..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-brand-cream-light/60 border border-brand-cream-dark/60 rounded-xl px-3.5 py-2 pl-9 text-xs text-brand-charcoal placeholder-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                className="w-full text-xs border border-brand-cream-dark/60 rounded-full pl-9 pr-4 py-2 focus:ring-2 focus:ring-brand-primary focus:outline-none bg-brand-cream-light/30 text-brand-charcoal placeholder-brand-muted/70"
               />
               <svg
                 className="w-4 h-4 text-brand-muted absolute left-3 top-2.5"
@@ -250,7 +310,7 @@ export default function ReceptionistMessagesPage() {
             </div>
           </div>
 
-          {/* List */}
+          {/* List of Conversations */}
           <div className="flex-1 overflow-y-auto divide-y divide-brand-cream-dark/40">
             {conversationsLoading ? (
               <div className="p-6 text-center text-xs text-brand-muted">
@@ -267,17 +327,16 @@ export default function ReceptionistMessagesPage() {
               </div>
             ) : (
               conversations.map((conv) => {
-                const isSelected =
-                  selectedConversation?.patientId === conv.patient_id &&
-                  selectedConversation?.guardianId === conv.guardian_id;
+                const isSelected = selectedConversation?.guardianId === conv.guardian_id;
+                const isLinked = conv.is_linked && conv.patient_id !== null;
 
                 return (
                   <button
-                    key={`${conv.guardian_id}-${conv.patient_id}`}
+                    key={`${conv.guardian_id}-${conv.patient_id ?? 'unlinked'}`}
                     onClick={() =>
                       setSelectedConversation({
-                        patientId: conv.patient_id,
                         guardianId: conv.guardian_id,
+                        patientId: conv.patient_id,
                       })
                     }
                     className={`w-full text-left p-3.5 transition flex items-start gap-3 cursor-pointer ${
@@ -307,13 +366,21 @@ export default function ReceptionistMessagesPage() {
                         </span>
                       </div>
 
-                      <div className="flex items-center gap-1.5 mb-1">
-                        <span className="text-[10px] font-semibold text-brand-muted truncate">
-                          Patient: {conv.patient_number} — {conv.patient_name}
-                        </span>
-                        <span className="inline-block text-[9px] font-bold bg-brand-cream-dark/50 text-brand-charcoal px-1.5 py-0.2 rounded-full shrink-0">
-                          {conv.relationship}
-                        </span>
+                      <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+                        {isLinked ? (
+                          <>
+                            <span className="text-[10px] font-semibold text-brand-muted truncate">
+                              Patient: {conv.patient_number} — {conv.patient_name}
+                            </span>
+                            <span className="inline-block text-[9px] font-bold bg-brand-cream-dark/50 text-brand-charcoal px-1.5 py-0.2 rounded-full shrink-0">
+                              {conv.relationship}
+                            </span>
+                          </>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-[9px] font-bold bg-amber-100 text-amber-900 border border-amber-300 px-2 py-0.5 rounded-full">
+                            <span>⚠️</span> Patient not yet linked
+                          </span>
+                        )}
                       </div>
 
                       <div className="flex items-center justify-between gap-2">
@@ -351,7 +418,7 @@ export default function ReceptionistMessagesPage() {
           ) : (
             <>
               {/* Conversation Header */}
-              <div className="p-3.5 border-b border-brand-cream-dark/60 bg-brand-cream/20 flex items-center justify-between">
+              <div className="p-3.5 border-b border-brand-cream-dark/60 bg-brand-cream/20 flex items-center justify-between relative">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-brand-primary text-white flex items-center justify-center font-bold text-sm">
                     {conversationDetail?.guardian?.name?.charAt(0) ||
@@ -367,28 +434,101 @@ export default function ReceptionistMessagesPage() {
                         {conversationDetail?.guardian?.relationship || activeConversationItem?.relationship}
                       </span>
                     </div>
-                    <div className="text-xs text-brand-muted flex items-center gap-2 mt-0.5">
-                      <span>
-                        Patient:{' '}
-                        <strong className="text-brand-charcoal">
-                          {conversationDetail?.patient?.patient_number || activeConversationItem?.patient_number} —{' '}
-                          {conversationDetail?.patient?.name || activeConversationItem?.patient_name}
-                        </strong>
-                      </span>
-                      {activeConversationItem?.guardian_phone && (
-                        <span>• Phone: {activeConversationItem.guardian_phone}</span>
+                    <div className="text-xs text-brand-muted flex items-center gap-2 mt-0.5 flex-wrap">
+                      {isCurrentLinked && conversationDetail?.patient ? (
+                        <span>
+                          Patient:{' '}
+                          <strong className="text-brand-charcoal">
+                            {conversationDetail.patient.patient_number} — {conversationDetail.patient.name}
+                          </strong>
+                        </span>
+                      ) : (
+                        <span className="text-amber-800 font-semibold">
+                          ⚠️ Patient not yet linked
+                        </span>
+                      )}
+                      {conversationDetail?.guardian?.phone && (
+                        <span>• Phone: {conversationDetail.guardian.phone}</span>
                       )}
                     </div>
                   </div>
                 </div>
 
-                <Link
-                  href={`/dashboard/patients/${selectedConversation.patientId}`}
-                  className="text-xs font-semibold text-brand-primary bg-brand-primary/10 hover:bg-brand-primary/20 px-3 py-1.5 rounded-lg transition"
-                >
-                  View Patient ↗
-                </Link>
+                {/* Header Actions Menu (⋮) */}
+                <div className="relative">
+                  <div className="flex items-center gap-2">
+                    {isCurrentLinked && conversationDetail?.patient && (
+                      <Link
+                        href={`/dashboard/patients/${conversationDetail.patient.id}`}
+                        className="text-xs font-semibold text-brand-primary bg-brand-primary/10 hover:bg-brand-primary/20 px-3 py-1.5 rounded-full transition hidden sm:inline-block"
+                      >
+                        View Patient ↗
+                      </Link>
+                    )}
+
+                    <button
+                      onClick={() => setIsActionsMenuOpen(!isActionsMenuOpen)}
+                      className="w-8 h-8 rounded-full border border-brand-cream-dark/60 flex items-center justify-center text-brand-charcoal hover:bg-brand-cream/50 transition cursor-pointer font-bold text-base"
+                      title="More Options"
+                    >
+                      &#8942;
+                    </button>
+                  </div>
+
+                  {/* Dropdown Menu */}
+                  {isActionsMenuOpen && (
+                    <div className="absolute right-0 top-10 z-40 bg-white border border-brand-cream-dark/60 rounded-2xl shadow-xl py-1.5 w-56 text-xs animate-in fade-in duration-100">
+                      <button
+                        onClick={() => {
+                          setIsActionsMenuOpen(false);
+                          setIsLinkModalOpen(true);
+                        }}
+                        className="w-full text-left px-4 py-2 hover:bg-brand-cream/40 font-semibold text-brand-primary flex items-center gap-2 cursor-pointer"
+                      >
+                        <span>🔗</span> {isCurrentLinked ? 'Re-link / Change Patient' : 'Link to Patient Record'}
+                      </button>
+
+                      {isCurrentLinked && (
+                        <>
+                          <button
+                            onClick={handleConfirmUnlink}
+                            disabled={unlinkPatientMutation.isPending}
+                            className="w-full text-left px-4 py-2 hover:bg-rose-50 text-rose-700 font-semibold flex items-center gap-2 cursor-pointer border-t border-brand-cream-dark/40"
+                          >
+                            <span>✕</span> {unlinkPatientMutation.isPending ? 'Unlinking...' : 'Unlink from Patient'}
+                          </button>
+                          {conversationDetail?.patient && (
+                            <Link
+                              href={`/dashboard/patients/${conversationDetail.patient.id}`}
+                              className="block px-4 py-2 hover:bg-brand-cream/40 text-brand-charcoal font-medium border-t border-brand-cream-dark/40"
+                            >
+                              Open Patient Chart ↗
+                            </Link>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
+
+              {/* Notice Banner for Unlinked Guardian */}
+              {!isCurrentLinked && (
+                <div className="bg-amber-50 border-b border-amber-200/80 px-4 py-2.5 flex items-center justify-between text-xs text-amber-900">
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">⚠️</span>
+                    <span>
+                      This guardian is not yet linked to a patient. Messages are isolated for patient confidentiality.
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => setIsLinkModalOpen(true)}
+                    className="shrink-0 font-bold underline hover:text-amber-950 cursor-pointer ml-3"
+                  >
+                    Link Patient Now &rarr;
+                  </button>
+                </div>
+              )}
 
               {/* Message History Feed */}
               <div className="flex-1 p-4 space-y-3 overflow-y-auto bg-brand-cream-light/30">
@@ -406,7 +546,7 @@ export default function ReceptionistMessagesPage() {
                         className={`flex flex-col ${isStaff ? 'items-end' : 'items-start'}`}
                       >
                         <div className="text-[10px] text-brand-muted mb-0.5 px-1 font-medium">
-                          {isStaff ? `${msg.sender_name} (Receptionist)` : msg.sender_name}
+                          {isStaff ? `${msg.sender_name} (Staff)` : msg.sender_name}
                         </div>
                         <div
                           className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-xs shadow-xs ${
@@ -474,6 +614,117 @@ export default function ReceptionistMessagesPage() {
           )}
         </div>
       </div>
+
+      {/* Patient Linking Modal */}
+      {isLinkModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-brand-charcoal/45 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="w-full max-w-md bg-white border border-brand-cream-dark/60 rounded-3xl p-6 shadow-xl space-y-4 text-brand-charcoal">
+            <div className="flex justify-between items-center border-b border-brand-cream-dark/45 pb-3">
+              <div>
+                <h3 className="font-serif text-base font-bold text-brand-charcoal">
+                  Link Guardian to Patient
+                </h3>
+                <p className="text-xs text-brand-muted mt-0.5">
+                  Guardian: <strong>{conversationDetail?.guardian?.name || activeConversationItem?.guardian_name}</strong>
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setIsLinkModalOpen(false);
+                  setSelectedPatientToLink(null);
+                }}
+                className="text-brand-muted hover:text-brand-charcoal text-lg font-bold cursor-pointer"
+              >
+                &times;
+              </button>
+            </div>
+
+            {/* Patient Search Input */}
+            <div className="space-y-1.5">
+              <label className="block text-[10px] font-bold text-brand-charcoal-light uppercase tracking-wider">
+                Search Patient (Name or Reg #) *
+              </label>
+              <input
+                type="text"
+                value={patientSearchTerm}
+                onChange={(e) => setPatientSearchTerm(e.target.value)}
+                placeholder="e.g. John Doe or RC-..."
+                className="w-full text-xs border border-brand-cream-dark/80 rounded-xl px-3.5 py-2 bg-brand-cream-light/35 focus:ring-1 focus:ring-brand-primary focus:outline-none"
+              />
+            </div>
+
+            {/* Patient Search Results */}
+            <div className="max-h-40 overflow-y-auto border border-brand-cream-dark/60 rounded-xl divide-y divide-brand-cream-dark/40 bg-brand-cream-light/20">
+              {patientsSearchLoading ? (
+                <div className="p-4 text-center text-xs text-brand-muted">Searching patients...</div>
+              ) : searchedPatients.length === 0 ? (
+                <div className="p-4 text-center text-xs text-brand-muted">No patients found.</div>
+              ) : (
+                searchedPatients.map((pt: any) => {
+                  const isSelected = selectedPatientToLink?.id === pt.id;
+                  return (
+                    <button
+                      key={pt.id}
+                      type="button"
+                      onClick={() => setSelectedPatientToLink(pt)}
+                      className={`w-full text-left p-2.5 text-xs flex justify-between items-center transition cursor-pointer ${
+                        isSelected ? 'bg-brand-primary/15 font-bold text-brand-primary' : 'hover:bg-brand-cream/60'
+                      }`}
+                    >
+                      <div>
+                        <span className="block font-semibold">{pt.name}</span>
+                        <span className="text-[10px] text-brand-muted font-mono">{pt.patient_number}</span>
+                      </div>
+                      <span className="text-[10px] uppercase font-bold text-brand-muted">{pt.status}</span>
+                    </button>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Relationship Dropdown */}
+            <div className="space-y-1.5">
+              <label className="block text-[10px] font-bold text-brand-charcoal-light uppercase tracking-wider">
+                Guardian Relationship *
+              </label>
+              <select
+                value={linkRelationship}
+                onChange={(e) => setLinkRelationship(e.target.value)}
+                className="w-full text-xs border border-brand-cream-dark/80 rounded-xl px-3.5 py-2 bg-white focus:ring-1 focus:ring-brand-primary focus:outline-none cursor-pointer"
+              >
+                <option value="Parent">Parent (Father / Mother)</option>
+                <option value="Spouse">Spouse (Husband / Wife)</option>
+                <option value="Sibling">Sibling (Brother / Sister)</option>
+                <option value="Child">Child (Son / Daughter)</option>
+                <option value="Legal Guardian">Legal Guardian</option>
+                <option value="Relative">Relative</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+
+            <div className="flex justify-end gap-2.5 pt-2 border-t border-brand-cream-dark/45">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsLinkModalOpen(false);
+                  setSelectedPatientToLink(null);
+                }}
+                className="rounded-full px-4 py-2 text-xs font-bold text-brand-muted hover:text-brand-charcoal hover:bg-brand-cream/40 transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmLink}
+                disabled={!selectedPatientToLink || linkPatientMutation.isPending}
+                className="rounded-full bg-brand-primary hover:bg-brand-primary-dark text-white px-5 py-2 text-xs font-bold transition shadow-xs cursor-pointer disabled:opacity-50"
+              >
+                {linkPatientMutation.isPending ? 'Linking...' : 'Confirm Link'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

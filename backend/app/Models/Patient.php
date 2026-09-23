@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Patient extends Model
 {
@@ -19,6 +20,16 @@ class Patient extends Model
         'phone',
         'status',
     ];
+
+    public function doctorAssignments(): HasMany
+    {
+        return $this->hasMany(PatientDoctorAssignment::class);
+    }
+
+    public function activeDoctorAssignment(): HasOne
+    {
+        return $this->hasOne(PatientDoctorAssignment::class)->where('status', 'active')->latestOfMany();
+    }
 
     public function guardians(): HasMany
     {

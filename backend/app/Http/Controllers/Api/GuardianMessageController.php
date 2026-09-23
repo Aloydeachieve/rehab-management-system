@@ -30,14 +30,9 @@ class GuardianMessageController extends Controller
             }
             $selectedPatientId = (int) $patientId;
         } else {
-            $selectedPatientId = $guardian->patient_id ?? ($accessiblePatientIds[0] ?? null);
-        }
-
-        if (! $selectedPatientId) {
-            return response()->json([
-                'messages' => [],
-                'patient_id' => null,
-            ]);
+            $selectedPatientId = ($guardian->isLinked() && $guardian->patient_id)
+                ? $guardian->patient_id
+                : ($accessiblePatientIds[0] ?? null);
         }
 
         $guardianIds = Guardian::where('email', $guardian->email)
@@ -46,11 +41,16 @@ class GuardianMessageController extends Controller
             ->push($guardian->id)
             ->unique();
 
-        $messages = GuardianMessage::with(['senderUser'])
-            ->where('patient_id', $selectedPatientId)
-            ->whereIn('guardian_id', $guardianIds)
-            ->orderBy('created_at', 'asc')
-            ->get();
+        $query = GuardianMessage::with(['senderUser'])
+            ->whereIn('guardian_id', $guardianIds);
+
+        if ($selectedPatientId) {
+            $query->where('patient_id', $selectedPatientId);
+        } else {
+            $query->whereNull('patient_id');
+        }
+
+        $messages = $query->orderBy('created_at', 'asc')->get();
 
         $formatted = $messages->map(function (GuardianMessage $msg) use ($guardian) {
             return [
@@ -68,35 +68,62 @@ class GuardianMessageController extends Controller
             ];
         });
 
+        // Check for delayed support response notice (90-120s with no staff reply)
+        $delayedNotice = null;
+        $latestMsg = $messages->last();
+        if ($latestMsg && $latestMsg->isFromGuardian()) {
+            $secondsWaiting = $latestMsg->created_at->diffInSeconds(now());
+            if ($secondsWaiting >= 90) {
+                $delayedNotice = [
+                    'id' => 'system-delay-notice',
+                    'title' => 'Support Update',
+                    'sender_type' => 'system',
+                    'sender_name' => 'Support Update',
+                    'message' => 'Your message has been received. Our clinical front desk team has been notified. If our staff is attending to a resident or in clinical rounds, we will reply shortly.',
+                    'created_at' => $latestMsg->created_at->copy()->addSeconds(90)->toISOString(),
+                ];
+            }
+        }
+
         return response()->json([
             'patient_id' => $selectedPatientId,
+            'is_linked' => $guardian->isLinked() && !empty($selectedPatientId),
+            'delayed_support_notice' => $delayedNotice,
             'messages' => $formatted,
         ]);
     }
 
     /**
-     * Send a support message from the authenticated guardian regarding a linked patient.
+     * Send a support message from the authenticated guardian regarding a linked patient or unlinked inquiry.
      */
     public function store(Request $request): JsonResponse
     {
         /** @var Guardian $guardian */
         $guardian = $request->user();
+        $accessiblePatientIds = $guardian->accessiblePatients()->pluck('id')->toArray();
 
         $data = $request->validate([
-            'patient_id' => ['required', 'integer', 'exists:patients,id'],
+            'patient_id' => ['nullable', 'integer', 'exists:patients,id'],
             'message' => ['required', 'string', 'max:2000'],
         ]);
 
-        $accessiblePatientIds = $guardian->accessiblePatients()->pluck('id')->toArray();
+        $targetPatientId = $data['patient_id'] ?? null;
 
-        if (! in_array((int) $data['patient_id'], $accessiblePatientIds, true)) {
-            return response()->json([
-                'message' => 'You are not authorized to communicate regarding this patient.',
-            ], 403);
+        // If guardian is verified/linked and has accessible patients, validate patient access
+        if ($guardian->isLinked() && !empty($accessiblePatientIds)) {
+            $targetPatientId = $targetPatientId ?? ($guardian->patient_id ?? $accessiblePatientIds[0]);
+            if (! in_array((int) $targetPatientId, $accessiblePatientIds, true)) {
+                return response()->json([
+                    'message' => 'You are not authorized to communicate regarding this patient.',
+                ], 403);
+            }
+        } else {
+            // Unlinked guardian: targetPatientId remains null
+            $targetPatientId = null;
         }
 
         $message = GuardianMessage::create([
-            'patient_id' => $data['patient_id'],
+            'patient_id' => $targetPatientId,
             'guardian_id' => $guardian->id,
             'sender_user_id' => null, // null indicates sent by guardian
             'message' => trim($data['message']),

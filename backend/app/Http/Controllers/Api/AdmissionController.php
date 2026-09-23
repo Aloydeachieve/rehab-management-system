@@ -97,7 +97,11 @@ class AdmissionController extends Controller
         $user = auth()->user();
 
         if ($user->isDoctor()) {
-            $isAssigned = $patient->appointments()
+            $isAssigned = $patient->doctorAssignments()
+                ->where('doctor_id', $user->id)
+                ->where('status', 'active')
+                ->exists()
+                || $patient->appointments()
                 ->where('assigned_staff_id', $user->id)
                 ->exists();
 

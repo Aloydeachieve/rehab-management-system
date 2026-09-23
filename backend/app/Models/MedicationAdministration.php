@@ -15,6 +15,7 @@ class MedicationAdministration extends Model
         'prescription_item_id',
         'administered_by',
         'scheduled_at',
+        'dose_slot', // morning, afternoon, evening, night
         'administered_at',
         'status', // scheduled, given, missed, refused, cancelled
         'notes',

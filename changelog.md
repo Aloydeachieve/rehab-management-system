@@ -301,3 +301,181 @@ All notable changes to this project will be documented in this file.
   - Updated `handleLogout` in `frontend/src/app/dashboard/layout.tsx` to redirect to the public home page (`/`) via `router.replace('/')` using `onSettled`.
   - Preserved backend Sanctum token revocation (`AuthController@logout`), frontend localStorage token removal (`setToken(null)`), and React Query cache clearing (`queryClient.clear()`).
 
+---
+
+## [Post-Phase 10: Clinical Responsibility, Doctor Assignment, Dashboard UX/UI Redesign & Public Visual Enhancement] - 2026-09-18
+
+### Clinical Responsibility & Persistent Doctor Assignment Model
+- **Database Architecture**:
+  - Created `patient_doctor_assignments` table migration tracking `patient_id`, `doctor_id`, `assigned_by`, `assigned_at`, `unassigned_at`, `status` (`active`, `inactive`, `transferred`), and `notes`.
+  - Defined `PatientDoctorAssignment` Eloquent model with relations to `Patient`, `User` (doctor), and `User` (assignedBy).
+  - Added `doctorAssignments()` and `activeDoctorAssignment()` relationships to `Patient` model, and `patientAssignments()` / `activePatientAssignments()` to `User` model.
+- **Backend API & Authorization**:
+  - Implemented `PatientDoctorAssignmentController` providing Admin-only assignment and reassignment (`POST /api/v1/patients/{patient}/doctor-assignments`), automatically closing previous active assignments with timestamps and audit trail.
+  - Implemented `GET /api/v1/doctors` endpoint allowing authorized staff to list licensed physicians with active patient counts.
+  - Updated all patient clinical checks (`ClinicalController`, `PatientController`, `AdmissionController`, `TreatmentSessionController`, `MedicationAdministrationController`) to recognize persistent active doctor assignments in addition to appointments for backward compatibility.
+  - Restricted prescription creation to doctors only (`role:doctor`).
+  - Added medication reaction discontinuation endpoint (`PATCH /api/v1/patients/{patient}/prescriptions/{prescription}/discontinue`) with reason, clinical notes, and audit trail.
+  - Implemented automatic classification of Admin notes as `'Administrative Observation'` while preserving doctor notes as `'Clinical Record'`.
+  - Implemented dedicated doctor dashboard endpoint (`GET /api/v1/dashboard/doctor`) and period-based analytics endpoint (`GET /api/v1/dashboard/analytics?period=...`).
+- **Feature Tests**:
+  - Created `Tests\Feature\DoctorAssignmentClinicalResponsibilityTest` with 13 automated tests covering admin assignment/reassignment, auto-closure, unassigned doctor restrictions, assigned doctor clinical access, doctor-only prescribing, adverse reaction discontinuation, and dashboard analytics.
+  - Full suite verified: 127 tests passed with 537 assertions (100% pass rate).
+
+### Dashboard UX/UI Redesign (Guided by User References)
+- **Design Tokens & Theme Architecture**:
+  - Upgraded `globals.css` with a refined healthcare palette: Medium Healthcare Green (`#2F7D5B`), Deep Forest Green (`#1F5C43`), Soft Sage (`#EAF6F0`), Warm Cream (`#FAF7F0`), Charcoal (`#1F2923`), and Amber Accent (`#D97706`).
+  - Added `lucide-react`, `recharts`, `motion`, `clsx`, and `tailwind-merge`.
+  - Created shadcn/ui-inspired primitives: `Button`, `Card`, `Badge`, and `cn` utility.
+- **Sidebar & Navigation Layout**:
+  - Redesigned `dashboard/layout.tsx` into grouped navigation sections (Overview, Patient Care, Operations, Administration).
+  - Added role-tailored navigation items, floating staff pill header, live role indicators, and responsive mobile drawer.
+- **Doctor Clinical Dashboard (`DoctorDashboard.tsx`)**:
+  - Guided by Rexora design reference: "Patient Care Overview" with a 4-milestone trajectory progress track (Intake/Detox &rarr; Cognitive Therapy &rarr; Skill Reintegration &rarr; Supervised Discharge).
+  - 4 circular metric rings: Total Patients, Stable Inpatients, High Observation, Discharges.
+  - Interactive clinical care cards for all assigned patients with last observation, urgent vital indicators, and direct clinical workspace links.
+- **Admin Management Dashboard (`page.tsx`)**:
+  - Top stat cards with sparklines and period tabs (`This Month`, `Prev Month`, `3 Months`, `6 Months`).
+  - Recharts visualizations: Interactive Inpatient Volume trend area chart and Revenue & Settlement donut chart.
+  - Prioritized operational alerts card with left-accent warning bars and quick action buttons.
+  - Responsive residential treatment sessions table with status pills and clinician badges.
+- **Patient Profile Clinical Workspace (`patients/[id]/page.tsx`)**:
+  - Prominent Primary Attending Physician card with active status pill, assignment timestamp, notes, and assigner identity.
+  - Admin-only physician assignment/reassignment modal and assignment audit history accordion.
+  - Structured Observations tab with 12 observation types, 4 severity levels (`Normal`, `Mild concern`, `Moderate concern`, `Significant concern`), and visual distinctions between Doctor Clinical Records and Admin Observations.
+  - Physician-guarded prescription builder with adverse reaction discontinuation modal.
+- **Patient Directory (`patients/page.tsx`)**:
+  - Multi-parameter filter bar (search, admission status, assignment state, attending doctor).
+  - Top metric cards with circular indicator rings.
+  - Responsive table with attending physician badge and profile action links.
+
+### Public Website Visual Enhancement
+- **Authentic Local Photography Integration**:
+  - Integrated local authentic photography from `frontend/public/image` across all public pages:
+    - `images.jpeg`: Rehabilitation Center Hospital Exterior & modern campus (Homepage Hero, Facilities).
+    - `images1.webp`: Attending physician consulting patient with clipboard (Homepage consultation card, Services).
+    - `images2.jpeg`: Residential quarters & living pavilion (Homepage 30-Day section, Facilities).
+    - `images3.jpg`: Multidisciplinary clinical team reviewing EMR records (About page, Staff Portal Login).
+    - `images4.jpg`: Doctor taking vitals & medical monitoring (Services, Facilities).
+    - `images5.jpg`: Doctor consultation office across desk (About, Facilities).
+    - `images6.jpg`: Psychological counseling & behavioral therapy session (Homepage, Services).
+- **Rexora-Inspired Public Healthcare Experience**:
+  - Homepage: Floating pill header, Rexora-style Patient Care Trajectory track with 4 circular metric rings (128 Total, 86 Stable, 12 High Observation, 24 Discharged), clinical disciplines cards, and intake CTA banner.
+  - Facilities page: Replaced all emojis and plain black placeholder boxes with high-resolution Next.js `Image` cards.
+  - Staff Login page: Split modern card layout with authenticated care photo backdrop and quick-fill test credentials pills for Admin, Doctor, and Receptionist.
+- **Production Build Verification**:
+  - `npm run build` completed with 0 errors across 23 static and dynamic routes.
+
+---
+
+## [Phase 11: Dose-Level eMAR, Guardian Linking & Public Website Experience] - 2026-09-18
+
+### Added
+- **Dose-Level eMAR Architecture**:
+  - Added `dose_slot` enum column (`morning`, `afternoon`, `evening`, `night`) to `medication_administrations` table with composite index `[patient_id, scheduled_at, dose_slot]`.
+  - Updated prescription generation in `ClinicalController@storePrescription` to automatically create individual dose records with realistic hospital schedule times (Once Daily: 08:00, BID: 08:00 & 20:00, TID: 08:00, 14:00 & 20:00, QID: 08:00, 14:00, 18:00 & 22:00).
+  - Added adverse reaction cancellation in `ClinicalController@discontinuePrescription` to cancel future scheduled doses while keeping historical given/refused records intact.
+  - Implemented comprehensive `GET /api/v1/patients/{id}/medication-workspace` returning active prescriptions, today's dose matrix, calculated daily status (`completed`, `incomplete`, `in_progress`), discontinued regimens, and filterable history (`today`, `yesterday`, `7_days`, `all`).
+  - Redesigned Patient Profile Medication Tab on `patients/[id]/page.tsx` into a dose-level eMAR schedule with slot-action modals and live day completion indicators.
+  - Redesigned facility-wide eMAR Workspace on `medications/page.tsx` into a matrix board (`Patient | Medication | Morning | Afternoon | Evening | Night | Day Status`) with timeline log toggle and workload metrics.
+
+- **Guardian–Patient Linking & Message Isolation**:
+  - Migrated `patient_id` to nullable with foreign key constraint preserved on `guardians` and `guardian_messages`.
+  - Updated `GuardianAuthController@activate` to support Option A (with patient number, instant link) and Option B (without patient number, general inquiry mode).
+  - Updated `GuardianMessageController` to isolate unlinked guardian messages, prevent patient data exposure, and allow sending support inquiries.
+  - Implemented staff linking endpoint `POST /api/v1/staff/guardians/{guardian}/link-patient` with duplicate prevention and automatic backlinking of earlier unlinked messages.
+  - Implemented staff unlinking endpoint `POST /api/v1/staff/guardians/{guardian}/unlink-patient` with full conversation history preservation.
+  - Enhanced Receptionist Support Inbox on `messages/page.tsx` with unlinked conversation badges, header action menu (`⋮`), patient search modal, and unlinking capability.
+
+- **Calming Delayed Support Message**:
+  - Added non-spamming dynamic notice generator in `GuardianMessageController@index`: returns `delayed_support_notice` whenever the latest message is from a guardian with $\ge 90$s elapsed and zero staff replies.
+  - Updated `SupportChatWidget.tsx` to render a distinct, soothing "Support Update" badge card with clinical 24/7 hotline that automatically disappears once staff replies.
+
+- **Public Website Refinement**:
+  - Healthcare & Recovery Focus visual trust strip below the hero using authentic local images (`/image/images.jpeg`, `/image/images1.webp`, `/image/images2.jpeg`, `/image/images3.jpg`).
+  - Added high-DPI interactive OpenStreetMap facility section at Nibo, Awka South LGA ($6.1770^\circ\text{ N}, 7.0700^\circ\text{ E}$) with transit guidance, visiting hours, and emergency desk contacts.
+  - Reduced-motion support with `motion-reduce:transform-none`.
+
+---
+
+## [Phase 11 Bug Fix: eMAR, Guardian Verification, Social Proof Marquee] - 2026-09-19
+
+### Fixed
+- **Patient Profile eMAR Workspace Runtime Crash (Issue 1)**:
+  - Fixed `TypeError: emarWorkspaceRes?.history?.map is not a function` at `/dashboard/patients/[id]` under "Medications & eMAR".
+  - Defined explicit TypeScript contracts (`EmarDoseRecord`, `EmarWorkspaceHistoryPagination`, `PatientMedicationWorkspaceResponse`) matching the backend Laravel pagination structure `{ current_page, data, last_page, total }`.
+  - Normalized history consumption across Admin, Receptionist, and Doctor views to `emarWorkspaceRes?.history?.data ?? []` while preserving full server-side pagination controls (Next/Previous, current page, total records).
+  - Maintained facility-wide `/dashboard/medications` functionality intact.
+
+- **Guardian Isolation & Receptionist Verification Linking (Issue 2)**:
+  - Enforced strict model-level verification in `Guardian.php`: `isLinked()` and `accessiblePatients()` now strictly require `is_verified === true && !empty($this->patient_id)`.
+  - Updated `GuardianAuthController@activate` Option B: When a user registers with email and password without a patient number, it provisions or updates an unlinked portal account (`patient_id = null`, `is_verified = false`) without auto-associating internal intake candidate records or exposing medical/patient records.
+  - Ensured `GuardianAuthController@guardianPayload` enforces empty `patients: []` and `'Support User'` relationship whenever a guardian is unlinked.
+  - Enforced `GuardianMessageController` and `StaffMessageController` strict message isolation: unlinked guardian messages and staff replies have `patient_id = null`.
+  - Updated Receptionist Support Inbox (`/dashboard/messages`): unlinked threads display `'Support User'` badge and `⚠️ Patient not yet linked`.
+  - Updated `StaffMessageController@linkPatient`: verifies linking, cleans up duplicate unverified intake candidate records with null password, and backlinks unlinked messages to the newly linked patient chart.
+  - Updated `SupportChatWidget.tsx`: unlinked guardians see "Support User" badge and "Patient: Patient not yet linked" notice in general inquiry mode without leaking patient numbers or clinical context.
+
+- **Healthcare Standards & Ecosystem Social Proof Marquee (Issue 3)**:
+  - Replaced SVG placeholder paths with authentic local brand assets from `frontend/public/image/brands/`: `nafdac.png`, `Emzor-Logo-HIRES-1.jpg`, `Juhel-Logo-1280x462.png`, `gsk.jpg`, `afrab.jpeg`, and `abbot.png`.
+  - Implemented mathematically seamless dual-track infinite marquee in `frontend/src/app/globals.css` with `@keyframes marquee-track` translating from `0%` to `-100%` across two synchronized track runners, eliminating visible jumps or loop gaps.
+  - Integrated rich micro-interactions: hovering anywhere on the marquee track pauses the scroll (`animation-play-state: paused`); hovering on a brand card scales it to `1.05`, elevates shadow with an emerald glow (`rgba(16,185,129,0.18)`), changes cursor to pointer, and smoothly resumes upon mouse leave.
+  - Framed content with neutral, professional medical wording: "HEALTHCARE STANDARDS & ECOSYSTEM" (adherence to national regulatory standards and quality pharmaceutical supply chains, without misleading partnership or endorsement claims).
+  - Maintained accessibility with a dedicated `motion-reduce:flex` static scrollable fallback honoring user `prefers-reduced-motion` settings.
+
+---
+
+## [Phase 11: eMAR Dose Scheduling & Adherence Logic Correction] - 2026-09-19
+
+### Added
+- **Centralized `MedicationScheduleService` (`backend/app/Services/MedicationScheduleService.php`)**:
+  - `normalizeFrequency(?string $frequency)`: Authoritative frequency normalizer mapping clinical and colloquial frequency patterns to time slots:
+    - *Once daily* (`1xdaily`, `1`, `qd`, `once`) $\rightarrow$ 1 dose/day (`morning` 08:00).
+    - *Twice daily* (`2xdaily`, `2`, `bid`, `twice`) $\rightarrow$ 2 doses/day (`morning` 08:00, `night` 20:00).
+    - *Three times daily* (`3xdaily`, `3`, `tid`, `three`) $\rightarrow$ 3 doses/day (`morning` 08:00, `afternoon` 14:00, `night` 20:00).
+    - *Four times daily* (`4xdaily`, `4`, `qid`, `four`, `q6h`) $\rightarrow$ 4 doses/day (`morning` 08:00, `afternoon` 14:00, `evening` 18:00, `night` 22:00).
+  - `parseDurationDays(?string $duration)`: Converts human-entered durations (`30 days`, `2 weeks`, `1 month`, or numeric strings) into integer days (e.g. 7, 14, 30).
+  - `generateDoseAdministrations(PrescriptionItem $item, mixed $startDateOrPatientId, mixed $startDate)`: Idempotently creates individual `MedicationAdministration` records across all scheduled slots for each day of the prescription duration.
+  - `ensureActivePrescriptionsScheduled(Patient $patient, mixed $date)`: On-the-fly idempotent reconciler ensuring active prescription items have dose administration records generated for the target date.
+  - `ensureActivePrescriptionsScheduledForAllPatients(mixed $date)`: Facility-wide reconciler generating missing slot doses for all active prescriptions on the queried date.
+  - `normalizeLegacyNullSlotsForDate(mixed $targetDate)`: Backfills legacy administrations where `dose_slot` was `null` by inferring slot windows from `scheduled_at`.
+  - `calculateDayAdherence(array $slotDoses, array $expectedSlotKeys)`: Regimen adherence calculator strictly enforcing:
+    - Any dose marked `refused` or `missed` $\rightarrow$ `incomplete`.
+    - All expected doses marked `given` $\rightarrow$ `completed`.
+    - Partial doses administered + remaining doses pending/due $\rightarrow$ `in_progress` (never prematurely `completed`).
+    - Future/unreached doses $\rightarrow$ `in_progress`.
+  - `calculateOverallDayAdherence(array $regimenStatuses)`: Combines all active medication regimen statuses for a patient into an overall day status (`completed`, `incomplete`, or `in_progress`).
+
+### Changed
+- **Prescription Creation Flow (`backend/app/Http/Controllers/Api/ClinicalController.php`)**:
+  - Replaced ad-hoc dose generation loop with delegated calls to `MedicationScheduleService::generateDoseAdministrations`.
+- **Medication Administration APIs (`backend/app/Http/Controllers/Api/MedicationAdministrationController.php`)**:
+  - `index()`: Calls `MedicationScheduleService::ensureActivePrescriptionsScheduledForAllPatients($startDate)` before querying, ensuring all dose slots (including night and afternoon) are scheduled without duplicating existing rows.
+  - `getPatientMedicationWorkspace()`: Reconciles active prescriptions with `ensureActivePrescriptionsScheduled`, computes individual regimen adherence and `overall_day_status`, and attaches `expected_slots` and `prescription_item` objects.
+- **Patient Profile eMAR Workspace (`frontend/src/app/dashboard/patients/[id]/page.tsx`)**:
+  - Bound "Today's Overall Status" metric card directly to `overall_day_status` from the backend API.
+  - Correctly renders dose action buttons for all scheduled slots and reflects regimen-level status badges (`Completed`, `In Progress`, `Incomplete`).
+- **Facility-wide eMAR Workspace (`frontend/src/app/dashboard/medications/page.tsx`)**:
+  - Updated `matrixRows` useMemo: `day_status` calculation explicitly resolves expected slots from prescription frequency (`1xdaily` $\rightarrow$ 1, `2xdaily`/`2` $\rightarrow$ 2, `3xdaily` $\rightarrow$ 3, `4xdaily` $\rightarrow$ 4).
+  - Enforces that partial administrations (e.g. morning given, night pending) remain `In Progress` until all expected slots are verified given.
+
+### Verified & Tested
+- **Automated Feature Test Suite (`backend/tests/Feature/Phase11EMARDoseSchedulingAndAdherenceTest.php`)**:
+  - Test 1: `test_once_daily_frequency_generates_one_morning_dose_at_0800` (1 dose/day at 08:00:00) $\rightarrow$ Passed.
+  - Test 2: `test_twice_daily_and_numeric_frequency_generates_morning_and_night_doses` (`2xdaily`, `2`, `BID` $\rightarrow$ Morning 08:00 and Night 20:00) $\rightarrow$ Passed.
+  - Test 3: `test_three_times_daily_frequency_generates_three_doses_per_day` (`3xdaily`, `TID` $\rightarrow$ Morning 08:00, Afternoon 14:00, Night 20:00) $\rightarrow$ Passed.
+  - Test 4: `test_four_times_daily_frequency_generates_four_doses_per_day` (`4xdaily`, `QID` $\rightarrow$ Morning 08:00, Afternoon 14:00, Evening 18:00, Night 22:00) $\rightarrow$ Passed.
+  - Test 5: `test_partial_administration_remains_in_progress_and_not_completed` (Morning Given, Night Pending $\rightarrow$ `in_progress`) $\rightarrow$ Passed.
+  - Test 6: `test_full_administration_becomes_completed` (Both Morning and Night Given $\rightarrow$ `completed`) $\rightarrow$ Passed.
+  - Test 7: `test_refused_dose_makes_regimen_incomplete` (Refused dose $\rightarrow$ `incomplete`) $\rightarrow$ Passed.
+  - Test 8: `test_missed_dose_makes_regimen_incomplete` (Missed dose $\rightarrow$ `incomplete`) $\rightarrow$ Passed.
+  - Test 9: `test_future_doses_stay_pending_and_not_marked_missed_or_incomplete` (Future date $\rightarrow$ `scheduled`, status `in_progress`) $\rightarrow$ Passed.
+  - Test 10: `test_multiple_medications_calculate_independent_and_overall_adherence` (Multi-med patient adherence combinations) $\rightarrow$ Passed.
+- **Regression Testing**:
+  - `Phase11DoseLevelEMARAndGuardianLinkingTest`: 7 tests, 105 assertions $\rightarrow$ Passed (100%).
+  - `MedicationAdministrationTest`: 6 tests, 18 assertions $\rightarrow$ Passed (100%).
+- **Frontend Production Build**:
+  - `next build`: Successfully compiled 23 routes with zero TypeScript errors.
+
+
+

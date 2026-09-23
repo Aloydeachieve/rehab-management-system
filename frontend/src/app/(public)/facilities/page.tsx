@@ -1,82 +1,139 @@
+'use client';
+
 import Link from 'next/link';
+import Image from 'next/image';
+import { ShieldCheck, MapPin, CheckCircle, Sparkles, Building2, TreePine, BedDouble, Stethoscope } from 'lucide-react';
 
 export default function FacilitiesPage() {
   const facilityAreas = [
     {
-      name: 'Residential Quarters',
-      description: 'Clean, well-ventilated, and organized rooms designed to provide a comfortable and restful environment for clients during their observation and treatment.',
-      amenity: 'Spacious beds, regular cleanup, security check'
+      name: 'Hospital Campus & Administration',
+      subtitle: 'Main Clinical Pavilion',
+      description: 'The central administration and intake facility, featuring reception lobbies, medical diagnostic stations, and staff monitoring hubs situated in Awka South.',
+      image: '/image/images.jpeg',
+      amenity: 'Intake reception, electronic records center, secure entry',
+      icon: Building2,
     },
     {
-      name: 'Therapy & Counseling Rooms',
-      description: 'Private, quiet counseling offices and group therapy spaces designed for supportive conversations, client evaluations, and counseling sessions.',
-      amenity: 'Private settings, comfortable seating, whiteboards'
+      name: 'Residential Quarters & Living Pavilion',
+      subtitle: 'Tranquil Recovery Suites',
+      description: 'Clean, well-ventilated, and organized accommodations designed to offer quiet rest and psychological security away from urban triggers.',
+      image: '/image/images2.jpeg',
+      amenity: 'Spacious beds, regular housekeeping, 24/7 security perimeter',
+      icon: BedDouble,
     },
     {
-      name: 'Recreation & Wellness Areas',
-      description: 'Dedicated spaces for physical exercise, outdoor walks, and reflection to support physical well-being alongside mental healing.',
-      amenity: 'Gym tools, walking paths, seating tables'
+      name: 'Medical Detox & Vitals Examination Room',
+      subtitle: 'Clinical Supervision Suite',
+      description: 'Equipped for routine temperature, pulse, blood pressure, and weight checks, emergency stabilization, and supervised medication administration.',
+      image: '/image/images4.jpg',
+      amenity: 'Diagnostic monitoring tools, eMAR stations, medical supplies',
+      icon: Stethoscope,
     },
     {
-      name: 'Dining & Nutritional Services',
-      description: 'A clean, communal dining hall where clients receive healthy, freshly prepared meals designed to support recovery and nutrition.',
-      amenity: 'Communal dining tables, balanced meal menus'
-    }
+      name: 'Confidential Consultation & Therapy Offices',
+      subtitle: 'Private Psychological Sanctuary',
+      description: 'Comfortable, private spaces for one-on-one psychiatric reviews, cognitive behavioral therapy sessions, and family reassessment meetings.',
+      image: '/image/images5.jpg',
+      amenity: 'Private soundproof rooms, comfortable seating, assessment desk',
+      icon: Sparkles,
+    },
   ];
 
   return (
-    <div className="bg-white py-16 sm:py-24">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <div className="bg-brand-cream-light py-16 sm:py-24">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-16">
+        
         {/* Header */}
-        <div className="max-w-3xl">
-          <span className="text-sm font-semibold uppercase text-teal-600 tracking-wider">Our Environment</span>
-          <h1 className="text-4xl font-extrabold tracking-tight text-zinc-900 sm:text-5xl mt-2">
-            The Nibo Rehabilitation Facility
+        <div className="max-w-3xl space-y-4">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-primary/10 px-4 py-1.5 text-xs font-bold text-brand-primary border border-brand-primary/20">
+            <ShieldCheck className="h-3.5 w-3.5" />
+            <span>Facility Tour & Quarters</span>
+          </span>
+          <h1 className="font-serif text-4xl sm:text-5xl font-bold tracking-tight text-brand-charcoal">
+            The Nibo Rehabilitation Center Facility
           </h1>
-          <p className="mt-6 text-lg leading-8 text-zinc-600">
-            A secure, serene, and clean environment specifically designed to support long-term recovery and clinical observation in Awka South, Anambra State.
+          <p className="text-base text-brand-charcoal/80 leading-relaxed font-medium">
+            Designed as a secure, tranquil, and clinical sanctuary in Awka South, Anambra State, our grounds foster focus, reflection, physical stabilization, and sustainable healing.
           </p>
         </div>
 
-        {/* Facilities list */}
-        <div className="mt-16 grid grid-cols-1 gap-12 lg:grid-cols-2 lg:gap-16">
-          {facilityAreas.map((area, idx) => (
-            <div key={idx} className="flex flex-col border border-zinc-200 rounded-2xl overflow-hidden shadow-sm bg-zinc-50">
-              {/* Mock visual placeholder using nice layout */}
-              <div className="h-48 bg-zinc-900 text-white flex flex-col justify-end p-6 relative overflow-hidden">
-                <span className="text-xs uppercase tracking-wider text-teal-400 font-semibold mb-2">Facility Section</span>
-                <h3 className="text-2xl font-bold relative z-10">{area.name}</h3>
-                <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/40 to-transparent z-0" />
-                <div className="absolute top-4 right-4 text-3xl">🏢</div>
-              </div>
-              <div className="p-6 sm:p-8 flex flex-col justify-between flex-grow">
-                <p className="text-sm leading-relaxed text-zinc-600">{area.description}</p>
-                <div className="mt-6 pt-4 border-t border-zinc-200">
-                  <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Key Details:</span>
-                  <span className="ml-2 text-sm text-zinc-800 font-medium">{area.amenity}</span>
+        {/* Facility Areas Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-10">
+          {facilityAreas.map((area, idx) => {
+            const IconComponent = area.icon;
+            return (
+              <div
+                key={idx}
+                className="bg-white rounded-3xl border border-brand-cream-dark/60 overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between"
+              >
+                <div>
+                  <div className="relative h-64 w-full overflow-hidden">
+                    <Image
+                      src={area.image}
+                      alt={area.name}
+                      fill
+                      className="object-cover hover:scale-105 transition-transform duration-500"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                    <div className="absolute top-4 left-4 p-2.5 rounded-2xl bg-white/90 backdrop-blur-xs text-brand-primary shadow-sm">
+                      <IconComponent className="h-5 w-5" />
+                    </div>
+                    <div className="absolute bottom-4 left-4 right-4 text-white">
+                      <p className="text-[10px] uppercase font-bold tracking-wider text-brand-cream">{area.subtitle}</p>
+                      <h3 className="text-lg font-bold font-serif">{area.name}</h3>
+                    </div>
+                  </div>
+
+                  <div className="p-6 space-y-3">
+                    <p className="text-xs sm:text-sm text-brand-charcoal/85 leading-relaxed font-medium">
+                      {area.description}
+                    </p>
+                    <div className="pt-2 border-t border-brand-cream-dark/30">
+                      <span className="text-[10px] uppercase font-bold text-brand-muted tracking-wider">Features: </span>
+                      <span className="text-xs font-semibold text-brand-charcoal">{area.amenity}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-6 pt-0 flex justify-between items-center">
+                  <span className="text-[11px] text-brand-muted font-semibold">Awka South Campus</span>
+                  <Link
+                    href="/book-appointment"
+                    className="text-xs font-bold text-brand-primary hover:underline"
+                  >
+                    Schedule a Tour &rarr;
+                  </Link>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
-        {/* Tour CTA banner */}
-        <div className="mt-20 border-t border-zinc-200 pt-16 text-center">
-          <h2 className="text-2xl font-bold tracking-tight text-zinc-900">
-            Want to see the facility in person?
+        {/* Tour CTA Banner */}
+        <div className="rounded-3xl bg-brand-primary text-white p-8 sm:p-12 shadow-xl text-center space-y-5">
+          <h2 className="font-serif text-3xl font-bold text-white">
+            Schedule an In-Person Facility Tour
           </h2>
-          <p className="mx-auto mt-4 max-w-xl text-sm text-zinc-500">
-            Intake visits and facility tours must be scheduled in advance through our appointment form.
+          <p className="max-w-xl mx-auto text-xs sm:text-sm text-white/90 font-medium">
+            We welcome families and prospective clients to visit our campus in Nibo, meet the clinical staff, and view residential quarters firsthand.
           </p>
-          <div className="mt-8">
+          <div className="flex justify-center gap-4 pt-2">
             <Link
               href="/book-appointment"
-              className="rounded-full bg-teal-600 px-6 py-3 text-sm font-semibold text-white hover:bg-teal-700 transition-colors shadow"
+              className="rounded-full bg-white hover:bg-brand-cream text-brand-primary px-7 py-3 text-xs font-bold shadow transition cursor-pointer"
             >
-              Request Intake Visit Appointment
+              Book Intake Assessment & Tour
+            </Link>
+            <Link
+              href="/contact"
+              className="rounded-full border border-white/40 hover:bg-white/10 text-white px-7 py-3 text-xs font-bold transition cursor-pointer"
+            >
+              Contact Facility Office
             </Link>
           </div>
         </div>
+
       </div>
     </div>
   );

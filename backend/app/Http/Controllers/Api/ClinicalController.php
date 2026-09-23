@@ -19,7 +19,9 @@ use App\Models\Prescription;
 use App\Models\ProgressNote;
 use App\Models\TreatmentPlan;
 use App\Models\VitalSign;
+use App\Services\MedicationScheduleService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class ClinicalController extends Controller
@@ -42,7 +44,11 @@ class ClinicalController extends Controller
         }
 
         if ($user->isDoctor()) {
-            $isAssigned = $patient->appointments()
+            $isAssigned = $patient->doctorAssignments()
+                ->where('doctor_id', $user->id)
+                ->where('status', 'active')
+                ->exists()
+                || $patient->appointments()
                 ->where('assigned_staff_id', $user->id)
                 ->exists();
 
@@ -181,10 +187,19 @@ class ClinicalController extends Controller
     {
         $this->validatePatientAccess($patient);
 
+        /** @var \App\Models\User $user */
+        $user = auth()->user();
+        $noteType = $request->note_type;
+
+        // Visual distinction: Admin observations are recorded explicitly as Administrative Observation
+        if ($user->isAdmin()) {
+            $noteType = 'Administrative Observation';
+        }
+
         $record = ClinicalNote::create([
             'patient_id' => $patient->id,
-            'practitioner_id' => auth()->id(),
-            'note_type' => $request->note_type,
+            'practitioner_id' => $user->id,
+            'note_type' => $noteType,
             'content' => $request->content,
             'recorded_at' => now(),
         ]);
@@ -215,10 +230,16 @@ class ClinicalController extends Controller
     {
         $this->validatePatientAccess($patient);
 
-        $prescription = DB::transaction(function () use ($request, $patient) {
+        /** @var \App\Models\User $user */
+        $user = auth()->user();
+        if (!$user->isDoctor()) {
+            abort(403, 'Only doctors are authorized to prescribe medication.');
+        }
+
+        $prescription = DB::transaction(function () use ($request, $patient, $user) {
             $prescription = Prescription::create([
                 'patient_id' => $patient->id,
-                'practitioner_id' => auth()->id(),
+                'practitioner_id' => $user->id,
                 'status' => 'active',
                 'notes' => $request->notes,
                 'prescribed_at' => now(),
@@ -233,39 +254,11 @@ class ClinicalController extends Controller
                     'instructions' => $item['instructions'] ?? null,
                 ]);
 
-                // Auto-generate medication administration slots
-                $days = 7; // default fallback
-                if (preg_match('/(\d+)/', $item['duration'], $matches)) {
-                    $days = (int) $matches[1];
-                }
-
-                $frequency = strtolower($item['frequency']);
-                $times = ['09:00']; // default once daily
-
-                if (str_contains($frequency, 'twice') || str_contains($frequency, 'bid')) {
-                    $times = ['09:00', '21:00'];
-                } elseif (str_contains($frequency, 'three') || str_contains($frequency, 'tid')) {
-                    $times = ['09:00', '15:00', '21:00'];
-                }
-
-                $startDate = now()->startOfDay();
-                for ($d = 0; $d < $days; $d++) {
-                    $currentDate = $startDate->copy()->addDays($d);
-                    foreach ($times as $time) {
-                        $scheduledAt = $currentDate->copy()->setTimeFromTimeString($time);
-                        // Only skip slots that are strictly before today
-                        if ($scheduledAt->isBefore(now()->startOfDay())) {
-                            continue;
-                        }
-
-                        MedicationAdministration::create([
-                            'patient_id' => $patient->id,
-                            'prescription_item_id' => $prescriptionItem->id,
-                            'scheduled_at' => $scheduledAt,
-                            'status' => 'scheduled',
-                        ]);
-                    }
-                }
+                // Auto-generate dose-level medication administration schedule via centralized service
+                app(MedicationScheduleService::class)->generateDoseAdministrations(
+                    $prescriptionItem,
+                    now()->startOfDay()
+                );
             }
 
             return $prescription;
@@ -275,6 +268,59 @@ class ClinicalController extends Controller
             'message' => 'Prescription created successfully.',
             'data' => $prescription->load(['practitioner', 'items']),
         ], 201);
+    }
+
+    /**
+     * Discontinue a prescription (e.g. due to medication reaction / clinical review).
+     */
+    public function discontinuePrescription(Request $request, Patient $patient, Prescription $prescription): JsonResponse
+    {
+        $this->validatePatientAccess($patient);
+
+        /** @var \App\Models\User $user */
+        $user = auth()->user();
+        if (!$user->isDoctor()) {
+            abort(403, 'Only doctors can discontinue prescriptions.');
+        }
+
+        if ($prescription->patient_id !== $patient->id) {
+            abort(404, 'Prescription does not belong to this patient.');
+        }
+
+        $reason = $request->input('reason') ?? $request->input('discontinue_reason');
+        if (!$reason) {
+            $request->validate(['reason' => ['required', 'string', 'max:500']]);
+        }
+
+        $clinicalAction = $request->input('clinical_action') ?? $request->input('notes');
+
+        $prescription->update([
+            'status' => 'discontinued',
+            'notes' => trim(($prescription->notes ? $prescription->notes . "\n" : '') . "Discontinued: " . $reason),
+        ]);
+
+        // Automatically cancel any remaining scheduled administrations for this prescription
+        $itemIds = $prescription->items()->pluck('id');
+        MedicationAdministration::whereIn('prescription_item_id', $itemIds)
+            ->where('status', 'scheduled')
+            ->update([
+                'status' => 'cancelled',
+                'notes' => 'Discontinued: ' . $reason,
+            ]);
+
+        // Create auditable clinical record for medication reaction
+        ClinicalNote::create([
+            'patient_id' => $patient->id,
+            'practitioner_id' => $user->id,
+            'note_type' => 'Medication Reaction',
+            'content' => "Prescription #{$prescription->id} discontinued due to medication reaction / clinical review. Reason: {$reason}." . (!empty($clinicalAction) ? " Action Taken: {$clinicalAction}" : ""),
+            'recorded_at' => now(),
+        ]);
+
+        return response()->json([
+            'message' => 'Prescription discontinued and clinical note logged.',
+            'data' => $prescription->fresh(['practitioner', 'items']),
+        ]);
     }
 
     // =========================================================================

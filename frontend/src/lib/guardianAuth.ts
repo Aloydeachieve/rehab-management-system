@@ -45,13 +45,14 @@ export interface GuardianUser {
   phone: string;
   relationship: string;
   status: string;
+  is_linked?: boolean;
   last_login_at: string | null;
   patients: AccessiblePatient[];
 }
 
 export interface GuardianMessageItem {
   id: number;
-  patient_id: number;
+  patient_id: number | null;
   guardian_id: number;
   sender_user_id: number | null;
   sender_type: 'guardian' | 'staff';
@@ -59,6 +60,20 @@ export interface GuardianMessageItem {
   message: string;
   read_at: string | null;
   created_at: string;
+}
+
+export interface DelayedSupportNotice {
+  type: 'delayed_support_notice';
+  title: string;
+  message: string;
+  timestamp: string;
+}
+
+export interface GuardianMessagesResponse {
+  patient_id: number | null;
+  is_linked: boolean;
+  messages: GuardianMessageItem[];
+  delayed_support_notice?: DelayedSupportNotice | null;
 }
 
 export interface SupportStatusResponse {
@@ -106,7 +121,9 @@ export function useGuardianActivate() {
   return useMutation({
     mutationFn: async (data: {
       email: string;
-      patient_number: string;
+      patient_number?: string;
+      name?: string;
+      phone?: string;
       password: string;
       password_confirmation: string;
     }) => {
@@ -151,7 +168,7 @@ export function useSupportStatus() {
 }
 
 export function useGuardianMessages(patientId?: number) {
-  return useQuery<{ patient_id: number | null; messages: GuardianMessageItem[] }>({
+  return useQuery<GuardianMessagesResponse>({
     queryKey: ['guardian_messages', patientId],
     queryFn: async () => {
       const url = patientId ? `/guardian/messages?patient_id=${patientId}` : '/guardian/messages';
@@ -166,12 +183,14 @@ export function useGuardianMessages(patientId?: number) {
 export function useSendGuardianMessage() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (data: { patient_id: number; message: string }) => {
+    mutationFn: async (data: { patient_id?: number | null; message: string }) => {
       const res = await guardianApi.post('/guardian/messages', data);
       return res.data;
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['guardian_messages', variables.patient_id] });
+      if (variables.patient_id) {
+        queryClient.invalidateQueries({ queryKey: ['guardian_messages', variables.patient_id] });
+      }
       queryClient.invalidateQueries({ queryKey: ['guardian_messages'] });
     },
   });

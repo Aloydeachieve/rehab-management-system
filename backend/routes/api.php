@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\GuardianMessageController;
 use App\Http\Controllers\Api\InvoiceController;
 use App\Http\Controllers\Api\MedicationAdministrationController;
 use App\Http\Controllers\Api\PatientController;
+use App\Http\Controllers\Api\PatientDoctorAssignmentController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\StaffMessageController;
@@ -84,6 +85,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/treatment-sessions', [TreatmentSessionController::class, 'overview']);
 
         Route::get('/patients/{patient}/medication-administrations', [MedicationAdministrationController::class, 'getPatientAdministrations']);
+        Route::get('/patients/{patient}/medication-workspace', [MedicationAdministrationController::class, 'getPatientMedicationWorkspace']);
         Route::get('/medication-administrations', [MedicationAdministrationController::class, 'index']);
         Route::post('/medication-administrations', [MedicationAdministrationController::class, 'store']);
         Route::patch('/medication-administrations/{administration}', [MedicationAdministrationController::class, 'update']);
@@ -95,6 +97,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/users', [UserController::class, 'store']);
         Route::patch('/users/{user}', [UserController::class, 'update']);
         Route::delete('/users/{user}', [UserController::class, 'destroy']);
+
+        // Doctor Assignment Management (Admin only)
+        Route::get('/doctors', [PatientDoctorAssignmentController::class, 'doctors']);
+        Route::post('/patients/{patient}/doctor-assignments', [PatientDoctorAssignmentController::class, 'store']);
 
         // Treatment Pricing Configuration Update (Phase 9)
         Route::put('/pricing-config', [TreatmentPricingController::class, 'update']);
@@ -123,11 +129,22 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/patients/{patient}/progress-notes', [ClinicalController::class, 'getProgressNotes']);
         Route::post('/patients/{patient}/progress-notes', [ClinicalController::class, 'storeProgressNote']);
 
+        // Persistent Doctor Assignment details
+        Route::get('/patients/{patient}/doctor-assignments', [PatientDoctorAssignmentController::class, 'index']);
+
+        // Medication Reaction & Discontinue Prescription
+        Route::patch('/patients/{patient}/prescriptions/{prescription}/discontinue', [ClinicalController::class, 'discontinuePrescription']);
+
         // Treatment Session clinical workflows
         Route::post('/patients/{patient}/sessions', [TreatmentSessionController::class, 'store']);
         Route::post('/sessions/{session}/reassessment', [TreatmentSessionController::class, 'reassessment']);
         Route::post('/sessions/{session}/continue', [TreatmentSessionController::class, 'continueTreatment']);
         Route::post('/sessions/{session}/discharge', [TreatmentSessionController::class, 'discharge']);
+    });
+
+    // Doctor Only (Clinical Workspace)
+    Route::middleware('role:doctor')->group(function () {
+        Route::get('/dashboard/doctor', [DashboardController::class, 'doctorSummary']);
     });
 
     // Front-Desk, Communications & Billing (Admin & Receptionist)
@@ -145,12 +162,19 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/patients/{patient}/admission', [AdmissionController::class, 'store']);
         Route::get('/admissions', [AdmissionController::class, 'index']);
 
-        // Guardian Communication & Support Chat (Phase 7)
+        // Guardian Communication & Support Chat (Phase 7 & Phase 11 Refinements)
         Route::get('/messages', [StaffMessageController::class, 'index']);
         Route::get('/patients/{patient}/messages', [StaffMessageController::class, 'conversation']);
         Route::post('/patients/{patient}/messages', [StaffMessageController::class, 'reply']);
         Route::patch('/messages/{message}/read', [StaffMessageController::class, 'markAsRead']);
         Route::post('/patients/{patient}/messages/mark-read', [StaffMessageController::class, 'markConversationAsRead']);
+
+        // Phase 11: Unlinked Guardian Conversations & Linking
+        Route::get('/staff/guardians/{guardian}/conversation', [StaffMessageController::class, 'guardianConversation']);
+        Route::post('/staff/guardians/{guardian}/reply', [StaffMessageController::class, 'replyGuardian']);
+        Route::post('/staff/guardians/{guardian}/mark-read', [StaffMessageController::class, 'markGuardianConversationAsRead']);
+        Route::post('/staff/guardians/{guardian}/link-patient', [StaffMessageController::class, 'linkPatient']);
+        Route::post('/staff/guardians/{guardian}/unlink-patient', [StaffMessageController::class, 'unlinkPatient']);
 
         // Billing & Payments (Phase 8)
         Route::get('/invoices', [InvoiceController::class, 'index']);
@@ -159,9 +183,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/payments', [PaymentController::class, 'index']);
         Route::post('/payments', [PaymentController::class, 'store']);
 
-        // Administration Dashboard, Operational Alerts, Reports & Pricing (Phase 9)
+        // Administration Dashboard, Operational Alerts, Reports & Pricing (Phase 9 & Refinement)
         Route::get('/dashboard/summary', [DashboardController::class, 'summary']);
         Route::get('/dashboard/alerts', [DashboardController::class, 'alerts']);
+        Route::get('/dashboard/analytics', [DashboardController::class, 'analytics']);
         Route::get('/reports/{type}', [ReportController::class, 'index']);
         Route::get('/pricing-config', [TreatmentPricingController::class, 'show']);
     });

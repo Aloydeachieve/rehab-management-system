@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import * as zod from 'zod';
 import Link from 'next/link';
+import Image from 'next/image';
+import { Stethoscope, ShieldCheck, Lock, User, ArrowRight } from 'lucide-react';
 
 const loginSchema = zod.object({
   email: zod.string().email('Invalid email address'),
@@ -45,93 +47,139 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-brand-cream-light px-4 py-12 sm:px-6 lg:px-8 relative overflow-hidden">
-      {/* Soft Background Art */}
-      <div className="absolute top-0 left-0 w-80 h-80 bg-brand-primary/5 rounded-full filter blur-3xl opacity-30 -translate-x-1/2 -translate-y-1/2" />
-      <div className="absolute bottom-0 right-0 w-96 h-96 bg-brand-accent/5 rounded-full filter blur-3xl opacity-30 translate-x-1/3 translate-y-1/3" />
-
-      <div className="w-full max-w-md space-y-8 rounded-2xl border border-brand-cream-dark/55 bg-white p-8 sm:p-10 shadow-md relative z-10">
-        <div>
-          <div className="text-center">
-            <Link href="/" className="text-2xl font-serif font-bold tracking-tight text-brand-primary">
-              Nibo<span className="text-brand-charcoal font-sans font-semibold">Rehab</span>
+    <div className="min-h-screen bg-brand-cream-light flex flex-col justify-center items-center px-4 py-12 sm:px-6 lg:px-8">
+      <div className="w-full max-w-4xl bg-white rounded-3xl border border-brand-cream-dark/60 shadow-xl overflow-hidden grid grid-cols-1 md:grid-cols-12">
+        
+        {/* Left Visual Column */}
+        <div className="md:col-span-5 relative hidden md:block bg-brand-primary-dark">
+          <Image
+            src="/image/images3.jpg"
+            alt="Clinical Care Staff Reviewing Records"
+            fill
+            className="object-cover opacity-60"
+            priority
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-brand-charcoal via-brand-primary-dark/80 to-transparent" />
+          <div className="absolute inset-0 p-8 flex flex-col justify-between text-white z-10">
+            <Link href="/" className="flex items-center gap-2.5">
+              <div className="h-9 w-9 rounded-xl bg-white text-brand-primary flex items-center justify-center font-bold">
+                <Stethoscope className="h-5 w-5" />
+              </div>
+              <span className="font-serif text-xl font-bold tracking-tight text-white">
+                Nibo<span className="text-brand-cream font-sans font-semibold">Rehab</span>
+              </span>
             </Link>
-            <h2 className="mt-6 text-xl font-bold text-brand-charcoal tracking-tight">Staff Portal Sign In</h2>
-            <p className="mt-2 text-xs text-brand-muted font-medium">
-              Access the internal administrative or clinical dashboards.
-            </p>
+
+            <div className="space-y-2">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 text-[10px] font-bold uppercase tracking-wider text-brand-cream">
+                <ShieldCheck className="h-3.5 w-3.5" />
+                <span>Authorized Staff Portal</span>
+              </div>
+              <h3 className="font-serif text-2xl font-bold text-white leading-snug">
+                Clinical Responsibility & Patient Care
+              </h3>
+              <p className="text-xs text-zinc-300 font-medium leading-relaxed">
+                Secure electronic medical records, eMAR administration, and doctor clinical workspaces.
+              </p>
+            </div>
           </div>
         </div>
 
-        {login.isError && (
-          <div className="rounded-xl bg-red-50 p-4 text-xs text-red-800 border border-red-200/50">
-            {((login.error as any)?.response?.data?.message) || 'Authentication failed. Please check credentials.'}
+        {/* Right Form Column */}
+        <div className="md:col-span-7 p-8 sm:p-12 space-y-6">
+          <div>
+            <h2 className="text-2xl font-bold text-brand-charcoal tracking-tight">Staff Portal Sign In</h2>
+            <p className="text-xs text-brand-muted mt-1 font-medium">
+              Enter your staff credentials to access administrative and clinical workspaces.
+            </p>
           </div>
-        )}
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <div className="space-y-4">
+          {login.isError && (
+            <div className="rounded-2xl bg-rose-50 p-4 text-xs text-rose-800 border border-rose-200">
+              {((login.error as any)?.response?.data?.message) || 'Authentication failed. Please check credentials.'}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div>
-              <label htmlFor="email" className="block text-xs font-semibold text-brand-charcoal-light uppercase tracking-wider">
+              <label htmlFor="email" className="block text-xs font-bold text-brand-charcoal uppercase tracking-wider mb-1">
                 Email Address
               </label>
               <input
                 id="email"
                 type="email"
                 {...register('email')}
-                className="mt-1.5 block w-full rounded-xl border border-brand-cream-dark/80 bg-brand-cream-light/35 px-4.5 py-3 text-sm text-brand-charcoal placeholder-brand-muted/70 shadow-sm focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary focus:bg-white transition-all"
+                className="block w-full rounded-2xl border border-brand-cream-dark/80 bg-brand-cream-light/35 px-4 py-3 text-xs text-brand-charcoal focus:border-brand-primary focus:outline-none focus:bg-white transition-all font-medium"
                 placeholder="staff@rehabcenter.local"
               />
               {errors.email && (
-                <p className="mt-1.5 text-xs text-red-600 font-medium">{errors.email.message}</p>
+                <p className="mt-1 text-xs text-rose-600 font-medium">{errors.email.message}</p>
               )}
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-xs font-semibold text-brand-charcoal-light uppercase tracking-wider">
+              <label htmlFor="password" className="block text-xs font-bold text-brand-charcoal uppercase tracking-wider mb-1">
                 Password
               </label>
               <input
                 id="password"
                 type="password"
                 {...register('password')}
-                className="mt-1.5 block w-full rounded-xl border border-brand-cream-dark/80 bg-brand-cream-light/35 px-4.5 py-3 text-sm text-brand-charcoal placeholder-brand-muted/70 shadow-sm focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary focus:bg-white transition-all"
+                className="block w-full rounded-2xl border border-brand-cream-dark/80 bg-brand-cream-light/35 px-4 py-3 text-xs text-brand-charcoal focus:border-brand-primary focus:outline-none focus:bg-white transition-all font-medium"
                 placeholder="••••••••"
               />
               {errors.password && (
-                <p className="mt-1.5 text-xs text-red-600 font-medium">{errors.password.message}</p>
+                <p className="mt-1 text-xs text-rose-600 font-medium">{errors.password.message}</p>
               )}
             </div>
-          </div>
 
-          <div>
             <button
               type="submit"
               disabled={login.isPending}
-              className="flex w-full justify-center rounded-full bg-brand-accent hover:bg-brand-accent-dark text-white px-6 py-3.5 text-sm font-semibold shadow-md shadow-brand-accent/20 hover:shadow-lg hover:shadow-brand-accent/30 focus:outline-none disabled:bg-brand-accent/50 transition-all duration-300 cursor-pointer transform hover:scale-[1.01]"
+              className="w-full rounded-full bg-brand-primary hover:bg-brand-primary-dark text-white px-6 py-3.5 text-xs font-bold shadow-md transition-all cursor-pointer disabled:bg-brand-primary/50 flex items-center justify-center gap-2"
             >
-              {login.isPending ? 'Signing in...' : 'Sign In'}
+              <span>{login.isPending ? 'Authenticating...' : 'Sign In to Portal'}</span>
+              <ArrowRight className="h-4 w-4" />
             </button>
-          </div>
-        </form>
+          </form>
 
-        {/* Quick Testing Actions */}
-        {process.env.NODE_ENV === 'development' && (
-          <div className="border-t border-brand-cream-dark/50 pt-6">
-            <span className="block text-center text-xs font-semibold text-brand-muted uppercase tracking-wider mb-3">
-              Quick Login For Testing
+          {/* Quick Sign-In Pills (Design Guide Inspired) */}
+          <div className="pt-4 border-t border-brand-cream-dark/40 space-y-2.5">
+            <span className="text-[10px] font-bold text-brand-muted uppercase tracking-wider block">
+              Quick Test Sign In:
             </span>
-            <div className="space-y-2">
+            <div className="flex flex-wrap gap-2">
               <button
+                type="button"
                 onClick={() => handleQuickLogin('admin@rehabcenter.local')}
-                className="w-full text-left rounded-xl bg-brand-cream/35 border border-brand-cream-dark/40 px-4 py-3 text-xs font-medium text-brand-charcoal-light hover:bg-brand-cream/70 flex justify-between items-center transition-all cursor-pointer hover:border-brand-primary/45"
+                className="rounded-full bg-brand-cream-light hover:bg-brand-cream text-brand-charcoal px-3.5 py-1.5 text-xs font-bold border border-brand-cream-dark/60 transition-colors cursor-pointer"
               >
-                <span>Admin Account</span>
-                <span className="text-brand-accent font-semibold">Autofill &rarr;</span>
+                Admin
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickLogin('doctor@rehabcenter.local')}
+                className="rounded-full bg-emerald-50 hover:bg-emerald-100 text-emerald-800 px-3.5 py-1.5 text-xs font-bold border border-emerald-200 transition-colors cursor-pointer"
+              >
+                Doctor (Clinical)
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickLogin('receptionist@rehabcenter.local')}
+                className="rounded-full bg-brand-cream-light hover:bg-brand-cream text-brand-charcoal px-3.5 py-1.5 text-xs font-bold border border-brand-cream-dark/60 transition-colors cursor-pointer"
+              >
+                Receptionist
               </button>
             </div>
           </div>
-        )}
+
+          <div className="text-center pt-2">
+            <Link href="/" className="text-xs text-brand-muted hover:text-brand-primary font-medium">
+              &larr; Back to Public Website
+            </Link>
+          </div>
+        </div>
+
       </div>
     </div>
   );

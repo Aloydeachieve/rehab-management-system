@@ -18,12 +18,48 @@ class PatientController extends Controller
     {
         /** @var \App\Models\User $user */
         $user = $request->user();
-        $query = Patient::with(['guardians', 'admissions'])->latest();
+        $query = Patient::with([
+            'guardians',
+            'admissions',
+            'activeDoctorAssignment.doctor.staffProfile',
+            'treatmentSessions' => function ($q) {
+                $q->latest('session_number');
+            },
+        ])->latest();
 
         if ($user->isDoctor()) {
-            $query->whereHas('appointments', function ($q) use ($user) {
-                $q->where('assigned_staff_id', $user->id);
+            $query->where(function ($q) use ($user) {
+                $q->whereHas('doctorAssignments', function ($sub) use ($user) {
+                    $sub->where('doctor_id', $user->id)->where('status', 'active');
+                })->orWhereHas('appointments', function ($sub) use ($user) {
+                    $sub->where('assigned_staff_id', $user->id);
+                });
             });
+        }
+
+        if ($request->filled('doctor_id')) {
+            $doctorId = $request->doctor_id;
+            if ($doctorId === 'unassigned') {
+                $query->whereDoesntHave('doctorAssignments', function ($q) {
+                    $q->where('status', 'active');
+                });
+            } else {
+                $query->whereHas('doctorAssignments', function ($q) use ($doctorId) {
+                    $q->where('doctor_id', $doctorId)->where('status', 'active');
+                });
+            }
+        }
+
+        if ($request->filled('assignment_status')) {
+            if ($request->assignment_status === 'assigned') {
+                $query->whereHas('doctorAssignments', function ($q) {
+                    $q->where('status', 'active');
+                });
+            } elseif ($request->assignment_status === 'unassigned') {
+                $query->whereDoesntHave('doctorAssignments', function ($q) {
+                    $q->where('status', 'active');
+                });
+            }
         }
 
         if ($request->filled('search')) {
@@ -115,7 +151,11 @@ class PatientController extends Controller
         $user = auth()->user();
 
         if ($user->isDoctor()) {
-            $isAssigned = $patient->appointments()
+            $isAssigned = $patient->doctorAssignments()
+                ->where('doctor_id', $user->id)
+                ->where('status', 'active')
+                ->exists()
+                || $patient->appointments()
                 ->where('assigned_staff_id', $user->id)
                 ->exists();
 
@@ -124,7 +164,14 @@ class PatientController extends Controller
             }
         }
 
-        $patient->load(['guardians', 'admissions.admittedBy']);
+        $patient->load([
+            'guardians',
+            'admissions.admittedBy',
+            'activeDoctorAssignment.doctor.staffProfile',
+            'doctorAssignments.doctor.staffProfile',
+            'doctorAssignments.assignedBy',
+            'treatmentSessions',
+        ]);
         return response()->json(['patient' => $patient]);
     }
 
@@ -159,7 +206,11 @@ class PatientController extends Controller
         $user = auth()->user();
 
         if ($user->isDoctor()) {
-            $isAssigned = $patient->appointments()
+            $isAssigned = $patient->doctorAssignments()
+                ->where('doctor_id', $user->id)
+                ->where('status', 'active')
+                ->exists()
+                || $patient->appointments()
                 ->where('assigned_staff_id', $user->id)
                 ->exists();
 

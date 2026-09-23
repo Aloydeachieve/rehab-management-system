@@ -23,6 +23,9 @@ export default function SupportChatWidget() {
 
   // Activation form state
   const [actEmail, setActEmail] = useState('');
+  const [noPatientNumber, setNoPatientNumber] = useState(false);
+  const [actName, setActName] = useState('');
+  const [actPhone, setActPhone] = useState('');
   const [actPatientNum, setActPatientNum] = useState('');
   const [actPassword, setActPassword] = useState('');
   const [actConfirmPassword, setActConfirmPassword] = useState('');
@@ -44,7 +47,7 @@ export default function SupportChatWidget() {
 
   // Set default selected patient
   useEffect(() => {
-    if (guardian && guardian.patients.length > 0 && !selectedPatientId) {
+    if (guardian && guardian.patients && guardian.patients.length > 0 && !selectedPatientId) {
       setSelectedPatientId(guardian.patients[0].id);
     }
   }, [guardian, selectedPatientId]);
@@ -89,12 +92,22 @@ export default function SupportChatWidget() {
     }
 
     try {
-      await activateMutation.mutateAsync({
-        email: actEmail,
-        patient_number: actPatientNum,
-        password: actPassword,
-        password_confirmation: actConfirmPassword,
-      });
+      if (noPatientNumber) {
+        await activateMutation.mutateAsync({
+          email: actEmail,
+          name: actName || undefined,
+          phone: actPhone || undefined,
+          password: actPassword,
+          password_confirmation: actConfirmPassword,
+        });
+      } else {
+        await activateMutation.mutateAsync({
+          email: actEmail,
+          patient_number: actPatientNum,
+          password: actPassword,
+          password_confirmation: actConfirmPassword,
+        });
+      }
       setActPassword('');
       setActConfirmPassword('');
     } catch (err: any) {
@@ -102,20 +115,20 @@ export default function SupportChatWidget() {
         err.response?.data?.message ||
         err.response?.data?.errors?.email?.[0] ||
         err.response?.data?.errors?.patient_number?.[0] ||
-        'Account activation failed. Please check the patient ID and guardian email.'
+        'Account activation failed. Please check your details.'
       );
     }
   };
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!messageInput.trim() || !selectedPatientId || sendMessageMutation.isPending) return;
+    if (!messageInput.trim() || sendMessageMutation.isPending) return;
 
     const text = messageInput.trim();
     setMessageInput('');
     try {
       await sendMessageMutation.mutateAsync({
-        patient_id: selectedPatientId,
+        patient_id: selectedPatientId ?? null,
         message: text,
       });
     } catch (err: any) {
@@ -123,7 +136,10 @@ export default function SupportChatWidget() {
     }
   };
 
-  const selectedPatient = guardian?.patients.find((p) => p.id === selectedPatientId) || guardian?.patients[0];
+  const isGuardianLinked = Boolean(guardian?.is_linked && guardian?.patients && guardian.patients.length > 0);
+  const selectedPatient = isGuardianLinked
+    ? guardian?.patients?.find((p) => p.id === selectedPatientId) || guardian?.patients?.[0]
+    : undefined;
 
   return (
     <>
@@ -178,64 +194,54 @@ export default function SupportChatWidget() {
               {guardian && (
                 <button
                   onClick={() => logoutMutation.mutate()}
-                  title="Sign Out"
-                  className="text-xs bg-slate-800/60 hover:bg-slate-800 text-teal-200 px-2 py-1 rounded transition cursor-pointer"
+                  title="Log out from chat"
+                  className="text-xs text-teal-200 hover:text-white px-2 py-1 rounded bg-white/10 hover:bg-white/20 transition cursor-pointer"
                 >
-                  Sign Out
+                  Logout
                 </button>
               )}
               <button
-                id="close-chat-support-btn"
                 onClick={() => setIsOpen(false)}
-                className="w-7 h-7 flex items-center justify-center text-teal-200 hover:text-white rounded-full hover:bg-white/10 transition cursor-pointer"
+                className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-teal-100 hover:text-white text-lg transition cursor-pointer"
+                aria-label="Close chat"
               >
-                ✕
+                &times;
               </button>
             </div>
           </div>
 
-          {/* Body */}
-          <div className="flex-1 overflow-y-auto bg-slate-50 flex flex-col">
+          {/* Main Body */}
+          <div className="flex-1 flex flex-col overflow-hidden bg-slate-50">
             {guardianLoading ? (
-              <div className="flex-1 flex items-center justify-center text-slate-400 text-sm">
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-teal-600 mr-2" />
-                Loading...
+              <div className="flex-1 flex items-center justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600" />
               </div>
             ) : !guardian ? (
-              /* Unauthenticated View */
-              <div className="p-5 flex flex-col justify-center flex-1">
-                <div className="text-center mb-5">
-                  <div className="w-12 h-12 bg-teal-100 text-teal-700 rounded-full flex items-center justify-center mx-auto mb-2 text-xl font-bold">
-                    🔒
-                  </div>
-                  <h4 className="text-base font-bold text-slate-900">Chat with Support</h4>
-                  <p className="text-xs text-slate-600 mt-1">
-                    Please sign in as a guardian to start or continue a conversation with our receptionist.
-                  </p>
-                </div>
-
-                {/* Auth Mode Tabs */}
-                <div className="flex rounded-lg bg-slate-200 p-1 mb-4 text-xs font-semibold">
+              /* Unauthenticated: Login or Activate Form */
+              <div className="flex-1 p-5 overflow-y-auto">
+                <div className="flex border-b border-slate-200 mb-4">
                   <button
-                    type="button"
                     onClick={() => {
                       setAuthMode('login');
                       setLoginError(null);
                     }}
-                    className={`flex-1 py-1.5 rounded-md transition cursor-pointer ${
-                      authMode === 'login' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                    className={`flex-1 py-2 text-xs font-semibold text-center border-b-2 transition cursor-pointer ${
+                      authMode === 'login'
+                        ? 'border-teal-600 text-teal-700 font-bold'
+                        : 'border-transparent text-slate-500 hover:text-slate-700'
                     }`}
                   >
-                    Guardian Sign In
+                    Existing Login
                   </button>
                   <button
-                    type="button"
                     onClick={() => {
                       setAuthMode('activate');
                       setActError(null);
                     }}
-                    className={`flex-1 py-1.5 rounded-md transition cursor-pointer ${
-                      authMode === 'activate' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                    className={`flex-1 py-2 text-xs font-semibold text-center border-b-2 transition cursor-pointer ${
+                      authMode === 'activate'
+                        ? 'border-teal-600 text-teal-700 font-bold'
+                        : 'border-transparent text-slate-500 hover:text-slate-700'
                     }`}
                   >
                     Activate Account
@@ -251,7 +257,7 @@ export default function SupportChatWidget() {
                       </div>
                     )}
                     <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1">Guardian Email</label>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">Email Address</label>
                       <input
                         type="email"
                         required
@@ -284,16 +290,17 @@ export default function SupportChatWidget() {
                     </p>
                   </form>
                 ) : (
-                  /* Activation Form */
+                  /* Activation Form (Supports with or without patient registration number) */
                   <form onSubmit={handleActivate} className="space-y-2.5">
                     {actError && (
                       <div className="p-2 text-xs text-red-700 bg-red-50 border border-red-200 rounded-lg">
                         {actError}
                       </div>
                     )}
+
                     <div>
                       <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
-                        Guardian Email on File
+                        Your Email Address *
                       </label>
                       <input
                         type="email"
@@ -304,21 +311,67 @@ export default function SupportChatWidget() {
                         className="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:outline-none bg-white text-slate-900"
                       />
                     </div>
-                    <div>
-                      <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
-                        Patient ID Number
+
+                    {/* Checkbox for unlinked inquiries */}
+                    <div className="bg-slate-100 p-2 rounded-lg border border-slate-200">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={noPatientNumber}
+                          onChange={(e) => setNoPatientNumber(e.target.checked)}
+                          className="rounded text-teal-600 focus:ring-teal-500 h-3.5 w-3.5"
+                        />
+                        <span className="text-[11px] text-slate-700 font-medium">
+                          I don&apos;t know the patient number / general inquiry
+                        </span>
                       </label>
-                      <input
-                        type="text"
-                        required
-                        value={actPatientNum}
-                        onChange={(e) => setActPatientNum(e.target.value)}
-                        placeholder="e.g. RC-2026-00001"
-                        className="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:outline-none bg-white text-slate-900"
-                      />
                     </div>
+
+                    {!noPatientNumber ? (
+                      <div>
+                        <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
+                          Patient ID Number *
+                        </label>
+                        <input
+                          type="text"
+                          required={!noPatientNumber}
+                          value={actPatientNum}
+                          onChange={(e) => setActPatientNum(e.target.value)}
+                          placeholder="e.g. RC-2026-00001"
+                          className="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:outline-none bg-white text-slate-900"
+                        />
+                      </div>
+                    ) : (
+                      <>
+                        <div>
+                          <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
+                            Your Full Name (Optional)
+                          </label>
+                          <input
+                            type="text"
+                            value={actName}
+                            onChange={(e) => setActName(e.target.value)}
+                            placeholder="e.g. Jane Doe"
+                            className="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:outline-none bg-white text-slate-900"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
+                            Contact Phone (Optional)
+                          </label>
+                          <input
+                            type="tel"
+                            value={actPhone}
+                            onChange={(e) => setActPhone(e.target.value)}
+                            placeholder="e.g. +234 803 000 0000"
+                            className="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:outline-none bg-white text-slate-900"
+                          />
+                        </div>
+                      </>
+                    )}
+
                     <div>
-                      <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">Create Password</label>
+                      <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">Create Password *</label>
                       <input
                         type="password"
                         required
@@ -329,7 +382,7 @@ export default function SupportChatWidget() {
                       />
                     </div>
                     <div>
-                      <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">Confirm Password</label>
+                      <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">Confirm Password *</label>
                       <input
                         type="password"
                         required
@@ -360,11 +413,11 @@ export default function SupportChatWidget() {
                       <span className="font-semibold text-slate-800">{guardian.name}</span>
                     </div>
                     <span className="bg-teal-100 text-teal-800 font-semibold px-2 py-0.5 rounded-full text-[11px]">
-                      {selectedPatient?.relationship || guardian.relationship}
+                      {isGuardianLinked ? (selectedPatient?.relationship || guardian.relationship || 'Guardian') : 'Support User'}
                     </span>
                   </div>
 
-                  {guardian.patients.length > 1 ? (
+                  {isGuardianLinked && guardian.patients && guardian.patients.length > 1 ? (
                     <div>
                       <label className="block text-[11px] font-medium text-slate-600 mb-1">
                         Who would you like to contact us about?
@@ -381,25 +434,45 @@ export default function SupportChatWidget() {
                         ))}
                       </select>
                     </div>
-                  ) : selectedPatient ? (
+                  ) : isGuardianLinked && selectedPatient ? (
                     <div className="text-[11px] text-slate-600">
                       <span className="font-medium text-slate-500">Patient: </span>
                       <span className="font-semibold text-slate-800">
                         {selectedPatient.patient_number} — {selectedPatient.name}
                       </span>
                     </div>
-                  ) : null}
+                  ) : (
+                    <div className="text-[11px] text-amber-800 font-medium flex items-center gap-1.5">
+                      <span className="text-slate-500">Patient:</span>
+                      <span className="bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded text-[10px] font-semibold border border-amber-200">
+                        Patient not yet linked
+                      </span>
+                    </div>
+                  )}
                 </div>
+
+                {/* Unlinked Notice Banner */}
+                {!isGuardianLinked && (
+                  <div className="bg-amber-50 border-b border-amber-200 px-3 py-2 text-xs text-amber-900 flex items-start gap-1.5">
+                    <span className="text-amber-600 text-sm leading-none">ℹ️</span>
+                    <div>
+                      <p className="font-semibold text-[11px]">Inquiry & Support Mode</p>
+                      <p className="text-[10px] text-amber-800 leading-snug">
+                        Your messages are sent directly to our reception staff. Once verified, our team will link your account to your relative&apos;s chart.
+                      </p>
+                    </div>
+                  </div>
+                )}
 
                 {/* Offline Banner if Receptionist is Offline */}
                 {!supportStatus?.is_online && (
-                  <div className="bg-amber-50 border-b border-amber-200 p-2.5 text-xs text-amber-800 flex items-start gap-2">
-                    <span className="text-amber-600 text-sm">ℹ️</span>
+                  <div className="bg-slate-100 border-b border-slate-200 p-2.5 text-xs text-slate-700 flex items-start gap-2">
+                    <span className="text-slate-500 text-sm">🕒</span>
                     <div>
                       <p className="font-medium">
-                        Support is currently offline. Leave a message and our receptionist will respond when available.
+                        Support is currently outside standard desk hours. Leave a message and our receptionist will reply promptly upon shift resumption.
                       </p>
-                      <p className="text-[10px] text-amber-600 mt-0.5">{supportStatus?.working_hours}</p>
+                      <p className="text-[10px] text-slate-500 mt-0.5">{supportStatus?.working_hours}</p>
                     </div>
                   </div>
                 )}
@@ -409,49 +482,67 @@ export default function SupportChatWidget() {
                   {messagesLoading ? (
                     <div className="text-center py-6 text-slate-400 text-xs">Loading conversation...</div>
                   ) : messageData?.messages && messageData.messages.length > 0 ? (
-                    messageData.messages.map((msg) => {
-                      const isGuardian = msg.sender_type === 'guardian';
-                      return (
-                        <div
-                          key={msg.id}
-                          className={`flex flex-col ${isGuardian ? 'items-end' : 'items-start'}`}
-                        >
-                          <div className="text-[10px] text-slate-500 mb-0.5 px-1 font-medium">
-                            {isGuardian ? 'You' : `${msg.sender_name} (Receptionist)`}
-                          </div>
+                    <>
+                      {messageData.messages.map((msg) => {
+                        const isGuardian = msg.sender_type === 'guardian';
+                        return (
                           <div
-                            className={`max-w-[82%] rounded-2xl px-3.5 py-2 text-xs shadow-sm ${
-                              isGuardian
-                                ? 'bg-teal-700 text-white rounded-br-xs'
-                                : 'bg-white border border-slate-200 text-slate-800 rounded-bl-xs'
-                            }`}
+                            key={msg.id}
+                            className={`flex flex-col ${isGuardian ? 'items-end' : 'items-start'}`}
                           >
-                            <p className="whitespace-pre-wrap leading-relaxed">{msg.message}</p>
+                            <div className="text-[10px] text-slate-500 mb-0.5 px-1 font-medium">
+                              {isGuardian ? 'You' : `${msg.sender_name} (Staff)`}
+                            </div>
                             <div
-                              className={`text-[9px] mt-1 flex items-center justify-end gap-1 ${
-                                isGuardian ? 'text-teal-200' : 'text-slate-400'
+                              className={`max-w-[82%] rounded-2xl px-3.5 py-2 text-xs shadow-sm ${
+                                isGuardian
+                                  ? 'bg-teal-700 text-white rounded-br-xs'
+                                  : 'bg-white border border-slate-200 text-slate-800 rounded-bl-xs'
                               }`}
                             >
-                              <span>
-                                {new Date(msg.created_at).toLocaleTimeString([], {
-                                  hour: '2-digit',
-                                  minute: '2-digit',
-                                })}
-                              </span>
-                              {isGuardian && (
-                                <span>{msg.read_at ? '✓✓' : '✓'}</span>
-                              )}
+                              <p className="whitespace-pre-wrap leading-relaxed">{msg.message}</p>
+                              <div
+                                className={`text-[9px] mt-1 flex items-center justify-end gap-1 ${
+                                  isGuardian ? 'text-teal-200' : 'text-slate-400'
+                                  }`}
+                              >
+                                <span>
+                                  {new Date(msg.created_at).toLocaleTimeString([], {
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                  })}
+                                </span>
+                                {isGuardian && (
+                                  <span>{msg.read_at ? '✓✓' : '✓'}</span>
+                                )}
+                              </div>
                             </div>
                           </div>
+                        );
+                      })}
+
+                      {/* Calming Delayed Support Notice (Parts 16–17) */}
+                      {messageData?.delayed_support_notice && (
+                        <div className="my-3 p-3 bg-teal-50 border border-teal-200/80 rounded-2xl text-xs text-teal-900 shadow-xs animate-in fade-in duration-200">
+                          <div className="flex items-center gap-1.5 mb-1 text-teal-800 font-bold text-[11px]">
+                            <span className="w-2 h-2 rounded-full bg-teal-500 animate-pulse" />
+                            <span>{messageData.delayed_support_notice.title}</span>
+                          </div>
+                          <p className="text-[11px] leading-relaxed text-teal-800/90 font-medium">
+                            {messageData.delayed_support_notice.message}
+                          </p>
+                          <p className="text-[9px] text-teal-600 mt-1.5 font-medium">
+                            Emergency 24/7 Desk: +234 803 123 4567
+                          </p>
                         </div>
-                      );
-                    })
+                      )}
+                    </>
                   ) : (
                     <div className="text-center py-10 px-4">
                       <div className="text-3xl mb-2">💬</div>
                       <p className="text-xs font-semibold text-slate-700">No messages yet</p>
                       <p className="text-[11px] text-slate-500 mt-1">
-                        Send a message below to connect directly with the rehabilitation center&apos;s receptionist.
+                        Send an inquiry below to connect with our care team and receptionist.
                       </p>
                     </div>
                   )}
